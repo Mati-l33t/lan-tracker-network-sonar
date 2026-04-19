@@ -12,8 +12,8 @@ msg_error() { echo -e "${RED}  ✘  ERROR:${NC} $1"; exit 1; }
 INSTALL_DIR="/opt/lan-tracker"
 SERVICE_NAME="lan-tracker"
 
-[[ $EUID -ne 0 ]]         && msg_error "Run as root"
-[[ ! -d "$INSTALL_DIR" ]] && msg_error "LAN Tracker not found at $INSTALL_DIR — run install.sh first"
+if [[ $EUID -ne 0 ]]; then msg_error "Run as root"; fi
+if [[ ! -d "$INSTALL_DIR" ]]; then msg_error "LAN Tracker not found at $INSTALL_DIR — run install.sh first"; fi
 
 echo ""
 echo -e "  ${BOLD}LAN Tracker Network Sonar — Updater${NC}"

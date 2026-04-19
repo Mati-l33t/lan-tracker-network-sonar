@@ -41,11 +41,15 @@ header() {
 }
 
 check_root() {
-  [[ $EUID -ne 0 ]] && msg_error "Run this script as root (sudo or root shell)"
+  if [[ $EUID -ne 0 ]]; then
+    msg_error "Run this script as root (sudo or root shell)"
+  fi
 }
 
 check_os() {
-  [[ ! -f /etc/os-release ]] && msg_error "Cannot detect OS"
+  if [[ ! -f /etc/os-release ]]; then
+    msg_error "Cannot detect OS"
+  fi
   # shellcheck source=/dev/null
   source /etc/os-release
   case "$ID" in

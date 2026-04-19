@@ -16,7 +16,7 @@ SERVICE_NAME="lan-tracker"
 DB_NAME="lan_tracker"
 DB_USER="lantracker"
 
-[[ $EUID -ne 0 ]] && msg_error "Run as root"
+if [[ $EUID -ne 0 ]]; then msg_error "Run as root"; fi
 
 echo ""
 echo -e "  ${YLW}${BOLD}LAN Tracker Network Sonar — Uninstaller${NC}"
