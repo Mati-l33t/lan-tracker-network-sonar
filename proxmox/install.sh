@@ -90,18 +90,28 @@ pick_storage() {
 
 # ── Template handling ──────────────────────────────────────────────────────────
 get_template() {
-  # Check for already-downloaded debian-13 template on chosen storage
-  local existing
-  existing=$(pveam list "$TEMPLATE_STORAGE" 2>/dev/null \
-    | awk '{print $1}' | grep "debian-13" | sort -V | tail -1 || true)
+  # Scan ALL storages with vztmpl content for an existing debian-13 template
+  local all_storages found_path=""
+  all_storages=$(pvesm status -content vztmpl 2>/dev/null \
+    | awk 'NR>1 && $1!="Name" {print $1}' || true)
 
-  if [[ -n "$existing" ]]; then
-    msg_done "Template found: $existing"
-    TEMPLATE_PATH="$existing"
+  for stor in $all_storages; do
+    local hit
+    hit=$(pveam list "$stor" 2>/dev/null \
+      | awk '{print $1}' | grep "debian-13" | sort -V | tail -1 || true)
+    if [[ -n "$hit" ]]; then
+      found_path="$hit"
+      msg_done "Template found on '$stor': $hit"
+      break
+    fi
+  done
+
+  if [[ -n "$found_path" ]]; then
+    TEMPLATE_PATH="$found_path"
     return
   fi
 
-  # Try downloading from pveam
+  # Not found anywhere — download to the user-selected storage
   msg_info "Updating template list..."
   pveam update &>/dev/null; msg_ok
 
