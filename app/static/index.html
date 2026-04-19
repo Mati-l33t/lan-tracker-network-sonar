@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN Tracker — Sonar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── THEME TOKENS ─────────────────────────────────── */
+        :root, [data-theme="dark"] {
+            --bg:            #0d0d0f;
+            --bg2:           #111115;
+            --surface:       #18181d;
+            --surface2:      #1f1f26;
+            --border:        #2c2c38;
+            --text:          #e0e0e8;
+            --text-muted:    #666676;
+            --text-dim:      #38383f;
+            --accent:        #22d3ee;
+            --accent-glow:   rgba(34, 211, 238, 0.14);
+            --accent-strong: rgba(34, 211, 238, 0.3);
+            --accent2:       #f59e0b;
+            --accent2-glow:  rgba(245, 158, 11, 0.22);
+            --active:        #34d399;
+            --active-bg:     rgba(52, 211, 153, 0.09);
+            --inactive:      #fb923c;
+            --inactive-bg:   rgba(251, 146, 60, 0.09);
+            --danger:        #f43f5e;
+            --danger-bg:     rgba(244, 63, 94, 0.1);
+            --static-c:      #a78bfa;
+            --static-bg:     rgba(167, 139, 250, 0.09);
+            --dhcp-c:        #f472b6;
+            --dhcp-bg:       rgba(244, 114, 182, 0.09);
+            --overlay:       rgba(0, 0, 0, 0.85);
+            --shadow:        0 8px 40px rgba(0,0,0,0.7);
+        }
+
+        [data-theme="light"] {
+            --bg:            #f4ede0;
+            --bg2:           #ece4d4;
+            --surface:       #fdf8f0;
+            --surface2:      #f5ede0;
+            --border:        #c8b89a;
+            --text:          #1a2a38;
+            --text-muted:    #7a6a54;
+            --text-dim:      #b0a088;
+            --accent:        #1e3d6b;
+            --accent-glow:   rgba(30, 61, 107, 0.14);
+            --accent-strong: rgba(30, 61, 107, 0.28);
+            --accent2:       #b84010;
+            --accent2-glow:  rgba(184, 64, 16, 0.2);
+            --active:        #1a6b45;
+            --active-bg:     rgba(26, 107, 69, 0.1);
+            --inactive:      #a05c14;
+            --inactive-bg:   rgba(160, 92, 20, 0.1);
+            --danger:        #be1d3c;
+            --danger-bg:     rgba(190, 29, 60, 0.1);
+            --static-c:      #4f38c2;
+            --static-bg:     rgba(79, 56, 194, 0.1);
+            --dhcp-c:        #9d174d;
+            --dhcp-bg:       rgba(157, 23, 77, 0.1);
+            --overlay:       rgba(10, 5, 0, 0.7);
+            --shadow:        0 8px 40px rgba(0,0,0,0.18);
+        }
+
+        /* ── RESET ────────────────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ── KEYFRAMES ────────────────────────────────────── */
+        @keyframes fade-up {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-down {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes sonar-ring {
+            0%   { box-shadow: 0 0 0 0 var(--accent-strong); }
+            70%  { box-shadow: 0 0 0 18px transparent; }
+            100% { box-shadow: 0 0 0 0 transparent; }
+        }
+        @keyframes breathe {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.55; }
+        }
+        @keyframes shine {
+            from { transform: translateX(-120%); }
+            to   { transform: translateX(120%); }
+        }
+
+        /* ── BASE ─────────────────────────────────────────── */
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Chakra Petch', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background 0.4s ease, color 0.4s ease;
+        }
+
+        /* subtle atmospheric glow */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 70% 55% at 0%   0%,   rgba(34,211,238,0.07)  0%, transparent 65%),
+                radial-gradient(ellipse 55% 45% at 100% 100%, rgba(167,139,250,0.07) 0%, transparent 65%),
+                radial-gradient(ellipse 40% 35% at 75%  10%,  rgba(245,158,11,0.04)  0%, transparent 60%);
+        }
+
+        [data-theme="light"] body::before {
+            background:
+                radial-gradient(ellipse 70% 55% at 0%   0%,   rgba(30,61,107,0.06)  0%, transparent 65%),
+                radial-gradient(ellipse 50% 40% at 100% 100%, rgba(184,64,16,0.05)  0%, transparent 65%);
+        }
+
+        body::after { display: none; }
+
+        .wrap {
+            padding: 28px 28px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── TOP ROW (config + stats side by side) ─────────── */
+        .top-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+
+        /* ── STAGGER ANIMATIONS ───────────────────────────── */
+        .s1 { animation: fade-up 0.55s ease 0.00s both; }
+        .s2 { animation: fade-up 0.55s ease 0.07s both; }
+        .s3 { animation: fade-up 0.55s ease 0.14s both; }
+        .s4 { animation: fade-up 0.55s ease 0.21s both; }
+        .s5 { animation: fade-up 0.55s ease 0.28s both; }
+        .s6 { animation: fade-up 0.55s ease 0.35s both; }
+        .s7 { animation: fade-up 0.55s ease 0.42s both; }
+
+        /* ── HEADER ───────────────────────────────────────── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--accent) 30%, var(--accent) 70%, transparent);
+            opacity: 0.5;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+.logo-text-block { line-height: 1; }
+
+        .logo-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .logo-name em {
+            font-style: normal;
+            color: var(--accent);
+            transition: color 0.4s;
+        }
+
+        .logo-sub {
+            font-size: 0.58rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        /* theme toggle */
+        .theme-btn {
+            width: 36px;
+            height: 36px;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: color 0.2s, background 0.2s;
+        }
+
+        .theme-btn:hover { color: var(--text); background: var(--surface2); }
+
+        .theme-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+        }
+
+        .theme-btn .icon-moon { display: block; }
+        .theme-btn .icon-sun  { display: none; }
+
+        [data-theme="light"] .theme-btn .icon-moon { display: none; }
+        [data-theme="light"] .theme-btn .icon-sun  { display: block; }
+
+        .theme-btn:hover svg { transform: rotate(20deg) scale(1.15); }
+
+        /* ── NOTIFICATIONS ────────────────────────────────── */
+        #statusContainer {
+            position: fixed;
+            top: 20px;
+            right: 75px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            max-width: calc(100vw - 95px);
+            width: fit-content;
+        }
+
+        .notif {
+            padding: 11px 16px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            border: 1px solid;
+            white-space: nowrap;
+            width: fit-content;
+            animation: slide-down 0.3s ease;
+        }
+
+        .notif-ok  { background: var(--active-bg);  color: var(--active);  border-color: var(--active); }
+        .notif-err { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger); }
+
+        /* ── PANEL (config) ───────────────────────────────── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: background 0.4s, border-color 0.4s;
+        }
+
+        .panel-label {
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-label svg { color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; }
+
+        .cfg-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .fg { display: flex; flex-direction: column; gap: 5px; }
+
+        .fg label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .fg input {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 9px 12px;
+            color: var(--text);
+            font-family: 'Courier Prime', monospace;
+            font-size: 0.875rem;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.4s;
+        }
+
+        .fg input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .fg input::placeholder { color: var(--text-dim); }
+        .fg input[readonly]    { opacity: 0.6; cursor: default; }
+
+        .search-row { display: flex; gap: 7px; }
+        .search-row input { flex: 1; min-width: 0; }
+
+        /* ── BUTTONS ──────────────────────────────────────── */
+        .btn-row {
+            display: flex;
+            gap: 9px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .btn:active { transform: translateY(0) scale(0.98); }
+
+        .btn-save {
+            background: var(--active-bg);
+            border-color: var(--active);
+            color: var(--active);
+        }
+        .btn-save:hover {
+            background: var(--active);
+            color: var(--bg);
+            border-color: var(--active);
+        }
+
+        .btn-scan {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+            color: var(--accent);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-scan::before {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0;
+            left: -60%; width: 40%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+            transform: skewX(-15deg);
+        }
+        .btn-scan:hover::before { animation: shine 0.55s ease; }
+        .btn-scan:hover {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 0 22px var(--accent-glow);
+        }
+        .btn-scan.is-scanning {
+            animation: breathe 1s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .btn-del {
+            background: var(--danger-bg);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .btn-del:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        /* ── STATS ────────────────────────────────────────── */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat {
+            border-radius: 12px;
+            padding: 22px 20px 20px;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.4s, border-color 0.4s;
+            border: 1px solid var(--stat-border, var(--border));
+            background: var(--stat-bg-card, var(--surface));
+        }
+
+        /* coloured top edge */
+        .stat::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--stat-bar);
+            box-shadow: 0 0 12px 1px var(--stat-glow);
+        }
+
+        /* faint corner glow behind the number */
+        .stat::after {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--stat-glow) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .stat--total {
+            --stat-bar:      #e0e0e8;
+            --stat-glow:     rgba(224,224,232,0.12);
+            --stat-border:   rgba(224,224,232,0.12);
+            --stat-color:    var(--text);
+        }
+        .stat--active {
+            --stat-bar:      var(--active);
+            --stat-glow:     rgba(52,211,153,0.18);
+            --stat-border:   rgba(52,211,153,0.18);
+            --stat-color:    var(--active);
+        }
+        .stat--free {
+            --stat-bar:      var(--accent);
+            --stat-glow:     rgba(34,211,238,0.18);
+            --stat-border:   rgba(34,211,238,0.18);
+            --stat-color:    var(--accent);
+        }
+        .stat--time {
+            --stat-bar:      var(--accent2);
+            --stat-glow:     rgba(245,158,11,0.18);
+            --stat-border:   rgba(245,158,11,0.18);
+            --stat-color:    var(--accent2);
+        }
+
+        .stat-num {
+            font-size: 2.8rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--stat-color, var(--text));
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .stat--time .stat-num { font-size: 1.2rem; font-family: 'Courier Prime', monospace; margin-top: 4px; }
+
+        .stat-lbl {
+            font-size: 0.58rem;
+            font-weight: 600;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* ── SECTION HEADERS ──────────────────────────────── */
+        .sec-hd {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .sec-hd:hover { background: var(--surface2); }
+
+        .sec-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sec-left svg {
+            width: 15px; height: 15px;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .sec-name {
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .sec-cnt {
+            font-size: 0.68rem;
+            font-family: 'Courier Prime', monospace;
+            color: var(--text-muted);
+        }
+
+        .chevron {
+            width: 15px; height: 15px;
+            color: var(--text-muted);
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+        .chevron.is-collapsed { transform: rotate(-90deg); }
+
+        /* ── COLLAPSIBLE ──────────────────────────────────── */
+        .coll {
+            max-height: 6000px;
+            overflow: hidden;
+            transition: max-height 0.35s ease;
+        }
+        .coll.is-collapsed { max-height: 0; }
+
+        /* ── TABLE ────────────────────────────────────────── */
+        .tbl-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .tbl-scroll { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 740px; }
+
+        th {
+            padding: 9px 14px;
+            text-align: left;
+            font-size: 0.58rem;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--bg2);
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 11px 14px;
+            font-size: 0.82rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.12s;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--surface2); }
+
+        .td-ip {
+            font-family: 'Courier Prime', monospace;
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--accent);
+            cursor: pointer;
+            letter-spacing: 0.04em;
+        }
+        .td-ip:hover { text-decoration: underline; }
+
+        .td-mac {
+            font-family: 'Courier Prime', monospace;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+        }
+
+        .td-vendor { font-size: 0.78rem; color: var(--text-muted); }
+
+        .dev-link {
+            color: var(--accent2);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline dotted;
+            transition: color 0.15s;
+        }
+        .dev-link:hover { color: var(--accent); }
+
+        .dev-name {
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+        .dev-name:hover { color: var(--text); }
+
+        .tbl-empty {
+            text-align: center;
+            padding: 36px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+        }
+
+        /* ── BADGES ───────────────────────────────────────── */
+        .badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 4px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border: 1px solid currentColor;
+        }
+        .badge-active   { background: var(--active-bg);   color: var(--active); }
+        .badge-inactive { background: var(--inactive-bg); color: var(--inactive); }
+        .badge-static   { background: var(--static-bg);   color: var(--static-c); }
+        .badge-dhcp     { background: var(--dhcp-bg);     color: var(--dhcp-c); }
+
+        /* ── IP TILES ─────────────────────────────────────── */
+        .ip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+            gap: 5px;
+            padding: 12px;
+        }
+
+        .ip-tile {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 7px 8px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 0.76rem;
+            text-align: center;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .ip-tile:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+        .ip-tile-static { color: var(--static-c); }
+        .ip-tile-dhcp   { color: var(--dhcp-c); }
+
+        .ip-tile-more {
+            color: var(--text-muted);
+            cursor: pointer;
+            border-style: dashed;
+        }
+        .ip-tile-more:hover { color: var(--accent); }
+
+        /* ── MODAL ────────────────────────────────────────── */
+        .modal-ov {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s, visibility 0.25s;
+        }
+        .modal-ov.is-open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: var(--shadow);
+            transform: scale(0.93) translateY(8px);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-ov.is-open .modal { transform: scale(1) translateY(0); }
+
+        .modal-hd {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .modal-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .modal-x {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+        .modal-x:hover { background: var(--danger-bg); color: var(--danger); }
+
+        .modal .fg { margin-bottom: 15px; }
+
+        .hint {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            letter-spacing: 0.05em;
+        }
+
+        .modal-ft {
+            display: flex;
+            gap: 9px;
+            justify-content: flex-end;
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        .modal-ft .btn-del { margin-right: auto; }
+
+        /* ── SCAN PROGRESS BAR ───────────────────────────── */
+        .scan-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            z-index: 9000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .scan-bar.is-active {
+            opacity: 1;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                var(--accent) 20%,
+                var(--active) 50%,
+                var(--accent2) 80%,
+                transparent 100%);
+            background-size: 300% 100%;
+            animation: scanbar 1.6s ease-in-out infinite;
+        }
+        @keyframes scanbar {
+            0%   { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        /* ── PORT PILLS ───────────────────────────────────── */
+        .port-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+        .port-pill {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 0.58rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            background: var(--surface2);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .port-pill-web  { background: rgba(34,211,238,0.1);  color: var(--accent);  border-color: rgba(34,211,238,0.25); }
+        .port-pill-sec  { background: rgba(52,211,153,0.1);  color: var(--active);  border-color: rgba(52,211,153,0.25); }
+        .port-pill-mail { background: rgba(245,158,11,0.1);  color: var(--accent2); border-color: rgba(245,158,11,0.25); }
+        .port-pill-rdp  { background: rgba(167,139,250,0.1); color: var(--static-c);border-color: rgba(167,139,250,0.25);}
+        .port-pill-risk { background: rgba(244,63,94,0.1);   color: var(--danger);  border-color: rgba(244,63,94,0.25); }
+
+        /* ── SPARKLINE ────────────────────────────────────── */
+        .sparkline { display: flex; gap: 2px; align-items: flex-end; }
+        .spark-day {
+            width: 7px; height: 14px;
+            border-radius: 2px;
+            border: 1px solid var(--border);
+            background: transparent;
+            transition: background 0.2s;
+        }
+        .spark-day.on  { background: var(--active); border-color: var(--active); }
+        .spark-today   { border-color: var(--accent) !important; }
+
+        /* ── UPTIME BADGE ─────────────────────────────────── */
+        .uptime {
+            font-size: 0.62rem;
+            font-family: 'Courier Prime', monospace;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+        .uptime-hi { color: var(--active); }
+        .uptime-md { color: var(--accent2); }
+        .uptime-lo { color: var(--danger); }
+
+        /* ── NEW BADGE ────────────────────────────────────── */
+        .badge-new {
+            display: inline-block;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.55rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            background: rgba(244,63,94,0.15);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            margin-left: 5px;
+            vertical-align: middle;
+            animation: breathe 2s ease-in-out infinite;
+        }
+
+        /* ── DEVICE ICON ──────────────────────────────────── */
+        .dev-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px; height: 22px;
+            border-radius: 5px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            flex-shrink: 0;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .dev-icon svg { width: 13px; height: 13px; }
+
+        /* ── ICON PICKER (in modal) ───────────────────────── */
+        .icon-picker {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .icon-opt {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 4px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: var(--bg2);
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+        .icon-opt svg { width: 16px; height: 16px; }
+        .icon-opt:hover { border-color: var(--accent); color: var(--accent); }
+        .icon-opt.selected { border-color: var(--accent); background: var(--accent-glow); color: var(--accent); }
+
+        /* ── NETWORK MAP OVERLAY ──────────────────────────── */
+        .map-ov {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s, visibility 0.25s;
+            display: flex;
+            flex-direction: column;
+        }
+        .map-ov.is-open { opacity: 1; visibility: visible; }
+
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            flex-shrink: 0;
+        }
+        .map-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .map-body {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        #mapSvg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #mapTip {
+            display: none;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 11px;
+            color: var(--text);
+            line-height: 1.5;
+            white-space: nowrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        #mapTip .tip-name {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        /* ── FOOTER ───────────────────────────────────────── */
+        footer {
+            margin-top: 48px;
+            padding: 20px 0 28px;
+            position: relative;
+            text-align: center;
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+        }
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--accent) 30%, var(--accent) 70%, transparent);
+            opacity: 0.5;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+        #backToTop {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s, transform 0.25s, background 0.2s;
+            z-index: 500;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+        #backToTop.visible { opacity: 1; pointer-events: auto; }
+        #backToTop:hover { background: var(--accent-glow); transform: translateY(-2px); }
+
+        /* ── RESPONSIVE ───────────────────────────────────── */
+        @media (max-width: 1000px) {
+            .top-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .wrap { padding: 16px 16px 0; }
+            header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .theme-btn { align-self: flex-end; }
+            .cfg-grid { grid-template-columns: 1fr; }
+            #statusContainer { position: relative; top: auto; bottom: auto; right: auto; left: auto; transform: none; align-items: center; max-width: 100%; margin-bottom: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="scan-bar" id="scanBar"></div>
+    <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+
+    <!-- NETWORK MAP OVERLAY -->
+    <div class="map-ov" id="mapOverlay">
+        <div class="map-header">
+            <span class="map-title">Network Map</span>
+            <button class="modal-x" onclick="closeMap()">&times;</button>
+        </div>
+        <div class="map-body">
+            <svg id="mapSvg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+        <div id="mapTip"></div>
+    </div>
+
+    <div class="wrap">
+        <!-- HEADER -->
+        <header class="s1">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
+                <div class="logo-text-block">
+                    <div class="logo-name">LAN <em>TRACKER</em></div>
+                    <div class="logo-sub">Network Sonar</div>
+                </div>
+            </div>
+            <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
+        </header>
+        <div id="statusContainer"></div>
+
+        <!-- TOP ROW: config left, stats right -->
+        <div class="top-row s2">
+        <div class="panel">
+            <div class="panel-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+                Network Configuration
+            </div>
+            <div class="cfg-grid">
+                <div class="fg">
+                    <label for="subnet">Subnet</label>
+                    <input type="text" id="subnet" placeholder="e.g. 10.0.0.0/24">
+                </div>
+                <div class="fg">
+                    <label for="staticStart">Static Range Start</label>
+                    <input type="text" id="staticStart" placeholder="e.g. 10.0.0.2">
+                </div>
+                <div class="fg">
+                    <label for="staticEnd">Static Range End</label>
+                    <input type="text" id="staticEnd" placeholder="e.g. 10.0.0.99">
+                </div>
+                <div class="fg">
+                    <label for="dhcpStart">DHCP Range Start</label>
+                    <input type="text" id="dhcpStart" placeholder="e.g. 10.0.0.100">
+                </div>
+                <div class="fg">
+                    <label for="dhcpEnd">DHCP Range End</label>
+                    <input type="text" id="dhcpEnd" placeholder="e.g. 10.0.0.200">
+                </div>
+                <div class="fg">
+                    <label for="searchIp">Find IP</label>
+                    <div class="search-row">
+                        <input type="text" id="searchIp" placeholder="e.g. 10.0.0.42" onkeyup="searchIpEnter(event)">
+                        <button class="btn" onclick="searchIp()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="fg">
+                    <label for="pingInput">Ping IP</label>
+                    <div class="search-row">
+                        <input type="text" id="pingInput" placeholder="e.g. 10.0.0.1" onkeydown="if(event.key==='Enter')doPing()">
+                        <button class="btn" onclick="doPing()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+                        </button>
+                    </div>
+                    <span id="pingResult" style="font-family:'Courier Prime',monospace;font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block"></span>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-save" onclick="saveConfig()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save Config
+                </button>
+                <button class="btn btn-scan" id="scanBtn" onclick="startScan()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4"/><path d="M17.7 6.3a8 8 0 010 11.4"/></svg>
+                    Scan Network
+                </button>
+                <button class="btn" onclick="resetConfig()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats">
+            <div class="stat stat--total">
+                <div class="stat-num" id="totalIps">—</div>
+                <div class="stat-lbl">Total IPs</div>
+            </div>
+            <div class="stat stat--active">
+                <div class="stat-num" id="activeIps">—</div>
+                <div class="stat-lbl">Active</div>
+            </div>
+            <div class="stat stat--free">
+                <div class="stat-num" id="freeIps">—</div>
+                <div class="stat-lbl">Free</div>
+            </div>
+            <div class="stat stat--time">
+                <div class="stat-lbl">Last Scan</div>
+                <div class="stat-num" id="scanTime">—</div>
+            </div>
+        </div>
+        </div><!-- end top-row -->
+
+        <!-- DEVICES -->
+        <div class="s4">
+            <div class="sec-hd" onclick="toggleSection('devices')">
+                <div class="sec-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="6" height="6" rx="1"/><rect x="16" y="2" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="16" y="16" width="6" height="6" rx="1"/><line x1="8" y1="5" x2="16" y2="5"/><line x1="8" y1="19" x2="16" y2="19"/><line x1="5" y1="8" x2="5" y2="16"/><line x1="19" y1="8" x2="19" y2="16"/></svg>
+                    <span class="sec-name">Discovered Devices</span>
+                    <span class="sec-cnt" id="devicesCount"></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button class="btn" onclick="event.stopPropagation();openMap()" style="padding:5px 11px;font-size:0.65rem;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                        Map
+                    </button>
+                    <svg class="chevron" id="devicesToggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+            </div>
+            <div class="coll" id="devicesContent">
+                <div class="tbl-box">
+                    <div class="tbl-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>IP Address</th>
+                                    <th>Status</th>
+                                    <th>Type</th>
+                                    <th>Device</th>
+                                    <th>Vendor</th>
+                                    <th>MAC</th>
+                                    <th>Ping</th>
+                                    <th>Services</th>
+                                    <th>7-Day Activity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ipTableBody">
+                                <tr><td colspan="8" class="tbl-empty">No data — run a scan first</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATIC IPs -->
+        <div class="s5">
+            <div class="sec-hd" onclick="toggleSection('static')">
+                <div class="sec-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span class="sec-name">Available Static IPs</span>
+                    <span class="sec-cnt" id="staticCount"></span>
+                </div>
+                <svg class="chevron is-collapsed" id="staticToggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="coll is-collapsed" id="staticContent">
+                <div class="tbl-box">
+                    <div class="ip-grid" id="staticIpTable"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DHCP IPs -->
+        <div class="s6">
+            <div class="sec-hd" onclick="toggleSection('dhcp')">
+                <div class="sec-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                    <span class="sec-name">Available DHCP IPs</span>
+                    <span class="sec-cnt" id="dhcpCount"></span>
+                </div>
+                <svg class="chevron is-collapsed" id="dhcpToggle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="coll is-collapsed" id="dhcpContent">
+                <div class="tbl-box">
+                    <div class="ip-grid" id="dhcpIpTable"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="s7">
+            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion" style="font-variant-numeric:tabular-nums"></a></p>
+        </footer>
+    </div>
+
+    <!-- CONFIRM DIALOG -->
+    <div class="modal-ov" id="confirmOverlay">
+        <div class="modal" style="max-width:340px;text-align:center;">
+            <div style="font-size:2rem;margin-bottom:10px;">⚠</div>
+            <div style="font-family:'Chakra Petch',sans-serif;font-size:0.85rem;font-weight:600;letter-spacing:0.1em;margin-bottom:8px;">RESET CONFIGURATION</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:22px;">This will clear all fields. You'll need to re-enter and save your network ranges.</div>
+            <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="btn" onclick="closeConfirm()" style="min-width:90px;">Cancel</button>
+                <button class="btn btn-del" id="confirmOkBtn" style="min-width:90px;">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-ov" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal">
+            <div class="modal-hd">
+                <span class="modal-title">Edit Device</span>
+                <button class="modal-x" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="fg">
+                <label for="modalIp">IP Address</label>
+                <input type="text" id="modalIp" readonly>
+            </div>
+            <div class="fg">
+                <label for="modalName">Device Name</label>
+                <input type="text" id="modalName" placeholder="e.g. Proxmox, Printer, NAS">
+                <div class="hint">A friendly label for this device</div>
+            </div>
+            <div class="fg">
+                <label for="modalUrl">Web Address (optional)</label>
+                <input type="url" id="modalUrl" placeholder="https://10.0.0.16:8006">
+                <div class="hint">Click the device name to open this URL</div>
+            </div>
+            <div class="fg">
+                <label>Device Type</label>
+                <div class="icon-picker" id="iconPicker"></div>
+            </div>
+            <div class="modal-ft">
+                <button class="btn btn-del" id="btnDelete" onclick="deleteDevice()" style="display:none;">Clear</button>
+                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-save" onclick="saveDevice()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentEditIp = null;
+        let currentEditIcon = 'unknown';
+        let allStaticIps = [];
+        let allDhcpIps = [];
+        let staticExpanded = false;
+        let dhcpExpanded = false;
+        let _lastDevices = [];
+
+        /* ── PORT LABELS ───────────────────────────────────── */
+        const PORT_INFO = {
+            21:   { label: 'FTP',    cls: 'port-pill-risk' },
+            22:   { label: 'SSH',    cls: 'port-pill-sec'  },
+            23:   { label: 'TELNET', cls: 'port-pill-risk' },
+            25:   { label: 'SMTP',   cls: 'port-pill-mail' },
+            53:   { label: 'DNS',    cls: 'port-pill-web'  },
+            80:   { label: 'HTTP',   cls: 'port-pill-web'  },
+            110:  { label: 'POP3',   cls: 'port-pill-mail' },
+            443:  { label: 'HTTPS',  cls: 'port-pill-sec'  },
+            3389: { label: 'RDP',    cls: 'port-pill-rdp'  },
+            8080: { label: 'HTTP*',  cls: 'port-pill-web'  },
+        };
+
+        /* ── DEVICE ICONS ──────────────────────────────────── */
+        const ICONS = {
+            router:  { label:'Router',  svg:'<path d="M5 12h14M12 5v14"/><circle cx="12" cy="12" r="3"/><path d="M4.5 8.5l-2-2M19.5 8.5l2-2M4.5 15.5l-2 2M19.5 15.5l2 2"/>' },
+            server:  { label:'Server',  svg:'<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>' },
+            pc:      { label:'PC',      svg:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+            phone:   { label:'Phone',   svg:'<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>' },
+            printer: { label:'Printer', svg:'<polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>' },
+            nas:     { label:'NAS',     svg:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>' },
+            camera:  { label:'Camera',  svg:'<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>' },
+            tv:      { label:'TV',      svg:'<rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/>' },
+            switch:  { label:'Switch',  svg:'<rect x="2" y="9" width="20" height="6" rx="1"/><line x1="6" y1="12" x2="6.01" y2="12"/><line x1="10" y1="12" x2="10.01" y2="12"/><polyline points="15 9 17 7 19 9"/><polyline points="15 15 17 17 19 15"/>' },
+            unknown: { label:'Other',   svg:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
+        };
+
+        function iconSvg(key, size) {
+            size = size || 13;
+            var d = ICONS[key] || ICONS.unknown;
+            return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d.svg + '</svg>';
+        }
+
+        /* ── THEME ─────────────────────────────────────────── */
+        (function() {
+            const saved = localStorage.getItem('lant-theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+        })();
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('lant-theme', next);
+        }
+
+        /* ── SECTION TOGGLE ────────────────────────────────── */
+        function toggleSection(id) {
+            document.getElementById(id + 'Content').classList.toggle('is-collapsed');
+            document.getElementById(id + 'Toggle').classList.toggle('is-collapsed');
+        }
+
+        /* ── MODAL ─────────────────────────────────────────── */
+        function buildIconPicker(selected) {
+            return Object.keys(ICONS).map(function(key) {
+                var sel = key === selected ? ' selected' : '';
+                return '<div class="icon-opt' + sel + '" onclick="selectIcon(\'' + key + '\')" title="' + ICONS[key].label + '">' +
+                    iconSvg(key, 16) +
+                    '<span>' + ICONS[key].label + '</span>' +
+                '</div>';
+            }).join('');
+        }
+
+        function selectIcon(key) {
+            currentEditIcon = key;
+            document.querySelectorAll('.icon-opt').forEach(function(el) {
+                el.classList.toggle('selected', el.getAttribute('onclick').indexOf("'" + key + "'") !== -1);
+            });
+        }
+
+        function openModal(ip, name, url, icon) {
+            currentEditIp = ip;
+            currentEditIcon = icon || 'unknown';
+            document.getElementById('modalIp').value = ip;
+            document.getElementById('modalName').value = name || '';
+            document.getElementById('modalUrl').value = url || '';
+            document.getElementById('btnDelete').style.display = (name || url) ? 'inline-flex' : 'none';
+            document.getElementById('iconPicker').innerHTML = buildIconPicker(currentEditIcon);
+            document.getElementById('modalOverlay').classList.add('is-open');
+            // ack new device
+            var dev = _lastDevices.find(function(d) { return d.ip === ip; });
+            if (dev && dev.isNew) {
+                fetch(API_BASE + '/api/device/ack', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ip: ip}) });
+                dev.isNew = false;
+                var badge = document.querySelector('[data-ip="' + ip + '"] .badge-new');
+                if (badge) badge.remove();
+            }
+            setTimeout(function() { document.getElementById('modalName').focus(); }, 300);
+        }
+
+        function closeModal(event) {
+            if (!event || event.target === document.getElementById('modalOverlay')) {
+                document.getElementById('modalOverlay').classList.remove('is-open');
+                currentEditIp = null;
+            }
+        }
+
+        /* ── CONFIG ────────────────────────────────────────── */
+        async function loadConfig() {
+            try {
+                const res = await fetch(API_BASE + '/api/config');
+                const cfg = await res.json();
+                document.getElementById('subnet').value      = cfg.subnet      || '';
+                document.getElementById('staticStart').value = cfg.staticStart || '';
+                document.getElementById('staticEnd').value   = cfg.staticEnd   || '';
+                document.getElementById('dhcpStart').value   = cfg.dhcpStart   || '';
+                document.getElementById('dhcpEnd').value     = cfg.dhcpEnd     || '';
+            } catch (e) { console.error(e); }
+        }
+
+        function resetConfig() {
+            document.getElementById('confirmOverlay').classList.add('is-open');
+            document.getElementById('confirmOkBtn').onclick = function() {
+                closeConfirm();
+                ['subnet','staticStart','staticEnd','dhcpStart','dhcpEnd']
+                    .forEach(function(id) { document.getElementById(id).value = ''; });
+                showStatus('Fields cleared — enter new values and save');
+            };
+        }
+        function closeConfirm() {
+            document.getElementById('confirmOverlay').classList.remove('is-open');
+        }
+
+        async function saveConfig() {
+            const cfg = {
+                subnet:      document.getElementById('subnet').value,
+                staticStart: document.getElementById('staticStart').value,
+                staticEnd:   document.getElementById('staticEnd').value,
+                dhcpStart:   document.getElementById('dhcpStart').value,
+                dhcpEnd:     document.getElementById('dhcpEnd').value
+            };
+            try {
+                const res = await fetch(API_BASE + '/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cfg)
+                });
+                if (!res.ok) throw new Error('Failed');
+                showStatus('Configuration saved');
+                loadData();
+            } catch (e) { showError('Save failed: ' + e.message); }
+        }
+
+        /* ── SCAN ──────────────────────────────────────────── */
+        var _scanIconSvg = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4"/><path d="M17.7 6.3a8 8 0 010 11.4"/></svg>';
+
+        async function startScan() {
+            var btn = document.getElementById('scanBtn');
+            var bar = document.getElementById('scanBar');
+            btn.disabled = true;
+            btn.classList.add('is-scanning');
+            btn.innerHTML = _scanIconSvg + ' Scanning\u2026';
+            bar.classList.add('is-active');
+            try {
+                var res = await fetch(API_BASE + '/api/scan', { method: 'POST' });
+                var result = await res.json();
+                showStatus('Scan complete \u2014 ' + result.found + ' devices found');
+                loadData();
+            } catch (e) {
+                showError('Scan failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('is-scanning');
+                btn.innerHTML = _scanIconSvg + ' Scan Network';
+                bar.classList.remove('is-active');
+            }
+        }
+
+        /* ── DATA ──────────────────────────────────────────── */
+        async function loadData() {
+            try {
+                const res = await fetch(API_BASE + '/api/status');
+                const data = await res.json();
+                renderData(data);
+            } catch (e) { showError('Load failed: ' + e.message); }
+        }
+
+        function countUp(el, target) {
+            if (typeof target !== 'number' || isNaN(target)) return;
+            var start = performance.now();
+            var dur = 550;
+            function step(now) {
+                var t = Math.min((now - start) / dur, 1);
+                var ease = 1 - Math.pow(1 - t, 3);
+                el.textContent = Math.round(ease * target);
+                if (t < 1) requestAnimationFrame(step);
+                else el.textContent = target;
+            }
+            requestAnimationFrame(step);
+        }
+
+        function esc(s) {
+            if (!s) return '';
+            return String(s)
+                .replace(/&/g,'&amp;')
+                .replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;')
+                .replace(/"/g,'&quot;')
+                .replace(/'/g,'&#39;');
+        }
+
+        function portPills(ports) {
+            if (!ports || !ports.length) return '<span style="color:var(--text-dim)">—</span>';
+            return '<div class="port-pills">' + ports.map(function(p) {
+                var info = PORT_INFO[p] || { label: p, cls: '' };
+                return '<span class="port-pill ' + info.cls + '">' + info.label + '</span>';
+            }).join('') + '</div>';
+        }
+
+        function sparklineHtml(days) {
+            if (!days) return '';
+            return '<div class="sparkline">' + days.map(function(on, i) {
+                var cls = 'spark-day' + (on ? ' on' : '') + (i === 6 ? ' spark-today' : '');
+                return '<div class="' + cls + '" title="' + ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i] + '"></div>';
+            }).join('') + '</div>';
+        }
+
+        function uptimeClass(pct) {
+            if (pct >= 80) return 'uptime uptime-hi';
+            if (pct >= 40) return 'uptime uptime-md';
+            return 'uptime uptime-lo';
+        }
+
+        function renderData(data) {
+            countUp(document.getElementById('totalIps'), data.total || 0);
+            countUp(document.getElementById('activeIps'), data.active || 0);
+            countUp(document.getElementById('freeIps'), data.free || 0);
+            document.getElementById('scanTime').textContent = data.lastScan
+                ? new Date(data.lastScan).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : 'Never';
+
+            var devices = data.devices || [];
+            _lastDevices = devices;
+            var activeCount = devices.filter(function(d) { return d.status === 'active'; }).length;
+            document.getElementById('devicesCount').textContent = devices.length + ' devices';
+
+            var tbody = document.getElementById('ipTableBody');
+            if (devices.length > 0) {
+                tbody.innerHTML = devices.map(function(dev) {
+                    var name = dev.custom_name || dev.hostname || 'unknown';
+                    var icon = dev.icon || 'unknown';
+                    var iconHtml = '<span class="dev-icon">' + iconSvg(icon) + '</span>';
+                    var newBadge = dev.isNew ? '<span class="badge-new">NEW</span>' : '';
+                    var devCell;
+                    if (dev.custom_name) {
+                        if (dev.url) {
+                            devCell = iconHtml + '<span class="dev-link" onclick="openUrl(\'' + esc(dev.url) + '\', event)">' + esc(name) + '</span>';
+                        } else {
+                            devCell = iconHtml + '<span class="dev-link" onclick="openModal(\'' + esc(dev.ip) + '\',\'' + esc(dev.custom_name) + '\',\'\',\'' + esc(icon) + '\')">' + esc(name) + '</span>';
+                        }
+                    } else {
+                        devCell = iconHtml + '<span class="dev-name" onclick="openModal(\'' + esc(dev.ip) + '\',\'\',\'\',\'' + esc(icon) + '\')">' + esc(name) + '</span>';
+                    }
+                    var ping = (dev.ping != null) ? dev.ping + ' ms' : '\u2014';
+                    var upPct = dev.uptimePct != null ? dev.uptimePct : null;
+                    var activityHtml = sparklineHtml(dev.sparkline) +
+                        (upPct != null ? '<div class="' + uptimeClass(upPct) + '">' + upPct + '%</div>' : '');
+                    return '<tr data-ip="' + esc(dev.ip) + '">' +
+                        '<td class="td-ip" onclick="openModal(\'' + esc(dev.ip) + '\',\'' + esc(dev.custom_name||'') + '\',\'' + esc(dev.url||'') + '\',\'' + esc(icon) + '\')">' + esc(dev.ip) + newBadge + '</td>' +
+                        '<td><span class="badge badge-' + (dev.status === 'active' ? 'active' : 'inactive') + '">' + dev.status + '</span></td>' +
+                        '<td><span class="badge badge-' + esc(dev.type) + '">' + esc(dev.type) + '</span></td>' +
+                        '<td>' + devCell + '</td>' +
+                        '<td class="td-vendor">' + esc(dev.vendor || '') + '</td>' +
+                        '<td class="td-mac">' + esc(dev.mac || '\u2014') + '</td>' +
+                        '<td style="white-space:nowrap">' + ping + '</td>' +
+                        '<td>' + portPills(dev.openPorts) + '</td>' +
+                        '<td>' + activityHtml + '</td>' +
+                    '</tr>';
+                }).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="9" class="tbl-empty">No devices — run a scan first</td></tr>';
+            }
+
+            allStaticIps = data.freeStaticIps || [];
+            document.getElementById('staticCount').textContent = allStaticIps.length + ' free';
+            renderStaticIps();
+
+            allDhcpIps = data.freeDhcpIps || [];
+            document.getElementById('dhcpCount').textContent = allDhcpIps.length + ' free';
+            renderDhcpIps();
+        }
+
+        /* ── IP TILES ──────────────────────────────────────── */
+        function expandStatic() { staticExpanded = true; renderStaticIps(); }
+        function expandDhcp()   { dhcpExpanded   = true; renderDhcpIps(); }
+
+        function renderStaticIps() {
+            var ips = allStaticIps;
+            var show = staticExpanded ? ips : ips.slice(0, 50);
+            var html = show.map(function(ip) {
+                return '<div class="ip-tile ip-tile-static">' + esc(ip) + '</div>';
+            }).join('');
+            if (!staticExpanded && ips.length > 50) {
+                html += '<div class="ip-tile ip-tile-more" onclick="expandStatic()">+' + (ips.length - 50) + ' more</div>';
+            }
+            document.getElementById('staticIpTable').innerHTML = html;
+        }
+
+        function renderDhcpIps() {
+            var ips = allDhcpIps;
+            var show = dhcpExpanded ? ips : ips.slice(0, 50);
+            var html = show.map(function(ip) {
+                return '<div class="ip-tile ip-tile-dhcp">' + esc(ip) + '</div>';
+            }).join('');
+            if (!dhcpExpanded && ips.length > 50) {
+                html += '<div class="ip-tile ip-tile-more" onclick="expandDhcp()">+' + (ips.length - 50) + ' more</div>';
+            }
+            document.getElementById('dhcpIpTable').innerHTML = html;
+        }
+
+        /* ── DEVICE SAVE / DELETE ──────────────────────────── */
+        function openUrl(url, event) {
+            if (event) event.stopPropagation();
+            if (url) window.open(url, '_blank');
+        }
+
+        async function saveDevice() {
+            var name = document.getElementById('modalName').value.trim();
+            var url  = document.getElementById('modalUrl').value.trim();
+            if (!currentEditIp) return;
+            try {
+                var res = await fetch(API_BASE + '/api/device/name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: currentEditIp, customName: name, url: url, icon: currentEditIcon })
+                });
+                var data = await res.json();
+                if (data.status === 'ok') {
+                    showStatus('Device saved');
+                    closeModal();
+                    loadData();
+                } else {
+                    showError('Error: ' + (data.error || 'Unknown'));
+                }
+            } catch (e) { showError('Error: ' + e.message); }
+        }
+
+        async function deleteDevice() {
+            if (!currentEditIp) return;
+            if (!confirm('Clear name and URL for ' + currentEditIp + '?')) return;
+            try {
+                var res = await fetch(API_BASE + '/api/device/name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: currentEditIp, customName: '', customUrl: '' })
+                });
+                var data = await res.json();
+                if (data.status === 'ok') {
+                    showStatus('Device cleared');
+                    closeModal();
+                    loadData();
+                }
+            } catch (e) { showError('Error: ' + e.message); }
+        }
+
+        /* ── NOTIFICATIONS ─────────────────────────────────── */
+        function showStatus(msg) {
+            document.getElementById('statusContainer').innerHTML =
+                '<div class="notif notif-ok">' + esc(msg) + '</div>';
+            setTimeout(function() { document.getElementById('statusContainer').innerHTML = ''; }, 3000);
+        }
+
+        function showError(msg) {
+            document.getElementById('statusContainer').innerHTML =
+                '<div class="notif notif-err">' + esc(msg) + '</div>';
+            setTimeout(function() { document.getElementById('statusContainer').innerHTML = ''; }, 5000);
+        }
+
+        /* ── SEARCH ────────────────────────────────────────── */
+        function searchIpEnter(e) { if (e.key === 'Enter') searchIp(); }
+
+        function searchIp() {
+            var query = document.getElementById('searchIp').value.trim();
+            if (!query) { showError('Enter an IP address to search'); return; }
+
+            var rows = document.querySelectorAll('#ipTableBody tr');
+            for (var i = 0; i < rows.length; i++) {
+                var cells = rows[i].querySelectorAll('td');
+                if (cells.length > 0 && cells[0].textContent.trim() === query) {
+                    if (document.getElementById('devicesContent').classList.contains('is-collapsed')) {
+                        toggleSection('devices');
+                    }
+                    rows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    rows[i].style.background = 'var(--accent-glow)';
+                    (function(row) {
+                        setTimeout(function() { row.style.background = ''; }, 2000);
+                    })(rows[i]);
+                    showStatus('Found: ' + query + ' \u2014 ' + cells[3].textContent.trim());
+                    return;
+                }
+            }
+
+            if (document.getElementById('staticContent').classList.contains('is-collapsed')) toggleSection('static');
+            if (document.getElementById('dhcpContent').classList.contains('is-collapsed'))   toggleSection('dhcp');
+
+            var tiles = document.querySelectorAll('.ip-tile');
+            for (var j = 0; j < tiles.length; j++) {
+                if (tiles[j].textContent.trim() === query) {
+                    tiles[j].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    tiles[j].style.outline    = '2px solid var(--accent)';
+                    tiles[j].style.background = 'var(--accent-glow)';
+                    (function(tile) {
+                        setTimeout(function() { tile.style.outline = ''; tile.style.background = ''; }, 2000);
+                    })(tiles[j]);
+                    showStatus('Found: ' + query + ' (free)');
+                    return;
+                }
+            }
+            showError('IP ' + query + ' not found');
+        }
+
+        /* ── NETWORK MAP ───────────────────────────────────── */
+        function openMap() {
+            var active = _lastDevices.filter(function(d) { return d.status === 'active'; });
+            if (!active.length) { showError('No active devices to map — run a scan first'); return; }
+            renderMap(active);
+            document.getElementById('mapOverlay').classList.add('is-open');
+        }
+
+        function closeMap() {
+            document.getElementById('mapOverlay').classList.remove('is-open');
+        }
+
+        function ip2num(ip) {
+            return ip.split('.').reduce(function(acc, o) { return (acc << 8) + parseInt(o, 10); }, 0) >>> 0;
+        }
+
+        function showMapTip(evt, ip, name) {
+            var tip = document.getElementById('mapTip');
+            tip.innerHTML = ip + (name ? '<br><span class="tip-name">' + esc(name) + '</span>' : '');
+            tip.style.display = 'block';
+            tip.style.left = (evt.clientX + 14) + 'px';
+            tip.style.top  = (evt.clientY - 10) + 'px';
+        }
+        function hideMapTip() {
+            document.getElementById('mapTip').style.display = 'none';
+        }
+
+        function renderMap(devices) {
+            var svg = document.getElementById('mapSvg');
+            var W = 1000, H = 700, cx = W / 2, cy = H / 2;
+            var sorted = devices.slice().sort(function(a,b) { return ip2num(a.ip) - ip2num(b.ip); });
+            var gateway = sorted[0];
+            var others  = sorted.slice(1);
+
+            // fixed R, shrink node radius when many devices
+            var n = others.length || 1;
+            var R = Math.min(cx, cy) * 0.78;
+            var nodeR = Math.max(5, Math.min(16, (2 * Math.PI * R) / (n * 3.5)));
+
+            var isDark  = document.documentElement.getAttribute('data-theme') !== 'light';
+            var colMuted = isDark ? '#555566' : '#9a8a74';
+            var colLine  = isDark ? '#2a2a38' : '#c8b89a';
+            var gwCol = '#f59e0b';
+
+            var html = '<defs>'
+                + '<filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/>'
+                + '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+                + '</defs>';
+
+            // lines first (behind nodes)
+            others.forEach(function(d, i) {
+                var angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+                d._x = cx + R * Math.cos(angle);
+                d._y = cy + R * Math.sin(angle);
+                d._a = angle;
+                html += '<line x1="' + cx + '" y1="' + cy + '" x2="' + d._x + '" y2="' + d._y
+                      + '" stroke="' + colLine + '" stroke-width="1" stroke-dasharray="4 4"/>';
+            });
+
+            // device nodes + IP labels outside circles
+            others.forEach(function(d) {
+                var col = d.status === 'active' ? '#34d399' : '#fb923c';
+                var x = d._x, y = d._y;
+                var nm = (d.custom_name || '').replace(/'/g, '&#39;');
+                var tip = 'onmouseover="showMapTip(event,\'' + d.ip + '\',\'' + nm + '\')" onmouseout="hideMapTip()"';
+                var click = 'onclick="hideMapTip();closeMap();openModal(\'' + d.ip + '\',\'' + nm + '\',\'' + (d.url||'') + '\',\'' + (d.icon||'unknown') + '\')"';
+                // outer ring
+                html += '<circle cx="' + x + '" cy="' + y + '" r="' + nodeR + '" fill="' + col + '" fill-opacity="0.12"'
+                      + ' stroke="' + col + '" stroke-width="1.5" style="cursor:pointer" filter="url(#glow)"'
+                      + ' ' + tip + ' ' + click + '/>';
+                // inner dot
+                html += '<circle cx="' + x + '" cy="' + y + '" r="' + Math.max(2, nodeR*0.3) + '" fill="' + col + '" style="pointer-events:none"/>';
+                // IP label radially outside the circle
+                var labelDist = nodeR + 9;
+                var lx = x + labelDist * Math.cos(d._a);
+                var ly = y + labelDist * Math.sin(d._a);
+                var anchor = Math.cos(d._a) > 0.15 ? 'start' : Math.cos(d._a) < -0.15 ? 'end' : 'middle';
+                var dy = Math.sin(d._a) > 0.15 ? '0.8em' : Math.sin(d._a) < -0.15 ? '0' : '0.35em';
+                html += '<text x="' + lx + '" y="' + ly + '" dy="' + dy + '" text-anchor="' + anchor + '"'
+                      + ' fill="' + col + '" font-size="9" font-family="Courier Prime,monospace"'
+                      + ' style="pointer-events:none">' + d.ip + '</text>';
+            });
+
+            // gateway node (center) — always show label, isolated so no overlap
+            html += '<circle cx="' + cx + '" cy="' + cy + '" r="26" fill="' + gwCol + '" fill-opacity="0.12"'
+                  + ' stroke="' + gwCol + '" stroke-width="2" filter="url(#glow)"'
+                  + ' onmouseover="showMapTip(event,\'' + gateway.ip + '\',\'' + (gateway.custom_name||'').replace(/'/g,"&#39;") + '\')" onmouseout="hideMapTip()"/>';
+            html += '<circle cx="' + cx + '" cy="' + cy + '" r="7" fill="' + gwCol + '" style="pointer-events:none"/>';
+            html += '<text x="' + cx + '" y="' + (cy + 42) + '" text-anchor="middle" fill="' + gwCol
+                  + '" font-size="11" font-family=\'Courier Prime,monospace\' font-weight="bold" style="pointer-events:none">'
+                  + gateway.ip + '</text>';
+            if (gateway.custom_name) {
+                html += '<text x="' + cx + '" y="' + (cy + 55) + '" text-anchor="middle" fill="' + colMuted
+                      + '" font-size="9" font-family=\'Chakra Petch,sans-serif\' style="pointer-events:none">'
+                      + esc(gateway.custom_name) + '</text>';
+            }
+
+            svg.innerHTML = html;
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeModal(); closeMap(); closeConfirm(); }
+        });
+
+        async function doPing() {
+            var ip = document.getElementById('pingInput').value.trim();
+            if (!ip) return;
+            var el = document.getElementById('pingResult');
+            el.style.color = 'var(--text-muted)';
+            el.textContent = 'pinging…';
+            try {
+                var res = await fetch(API_BASE + '/api/ping', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ip:ip}) });
+                var d = await res.json();
+                if (d.alive) { el.style.color='var(--active)'; el.textContent = d.ms + ' ms'; }
+                else         { el.style.color='var(--danger)';  el.textContent = 'no reply'; }
+            } catch(e) { el.style.color='var(--danger)'; el.textContent='error'; }
+        }
+
+        /* ── INIT ──────────────────────────────────────────── */
+        window.addEventListener('scroll', function() {
+            document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 300);
+        });
+        loadConfig();
+        loadData();
+        fetch(API_BASE + '/api/version').then(r => r.json()).then(d => {
+            var el = document.getElementById('appVersion');
+            if (el && d.version) el.textContent = 'v' + d.version;
+        }).catch(function(){});
+    </script>
+</body>
+</html>

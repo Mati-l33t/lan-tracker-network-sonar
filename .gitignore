@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Environment / secrets
+*.env
+.env
+lan-tracker.conf
+
+# OS
+.DS_Store
+Thumbs.db
