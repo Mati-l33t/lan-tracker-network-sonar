@@ -1091,6 +1091,10 @@
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4"/><path d="M17.7 6.3a8 8 0 010 11.4"/></svg>
                     Scan Network
                 </button>
+                <button class="btn" onclick="autoDetectNetwork()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+                    Auto-detect
+                </button>
                 <button class="btn" onclick="resetConfig()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
                     Reset
@@ -1399,6 +1403,20 @@
                 showStatus('Configuration saved');
                 loadData();
             } catch (e) { showError('Save failed: ' + e.message); }
+        }
+
+        async function autoDetectNetwork() {
+            try {
+                showStatus('Detecting network...');
+                const res = await fetch(API_BASE + '/api/detect-network');
+                const d   = await res.json();
+                document.getElementById('subnet').value      = d.subnet       || '';
+                document.getElementById('staticStart').value = d.static_start || '';
+                document.getElementById('staticEnd').value   = d.static_end   || '';
+                document.getElementById('dhcpStart').value   = d.dhcp_start   || '';
+                document.getElementById('dhcpEnd').value     = d.dhcp_end     || '';
+                showStatus('Network detected: ' + d.subnet + ' — click Save Config to apply');
+            } catch (e) { showError('Auto-detect failed: ' + e.message); }
         }
 
         /* ── SCAN ──────────────────────────────────────────── */

@@ -254,6 +254,10 @@ async def root():
 async def static_file(p: str):
     return FileResponse(BASE_DIR / "static" / p, headers={"Cache-Control": "no-cache"})
 
+@app.get("/api/detect-network")
+async def detect_network():
+    return _detect_defaults()
+
 @app.get("/api/config")
 async def get_config(): return get_cfg()
 
