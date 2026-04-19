@@ -46,11 +46,51 @@ check_root() {
   [[ $EUID -ne 0 ]] && msg_error "Run as root on the Proxmox host"
 }
 
+ensure_whiptail() {
+  command -v whiptail &>/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq whiptail
+}
+
+# Build a whiptail menu list from pvesm storage names
+# Usage: storage_menu <content-type>   e.g. vztmpl | rootdir
+storage_menu() {
+  local content="$1"
+  pvesm status -content "$content" 2>/dev/null \
+    | awk 'NR>1 && $1!="Name" {print $1, $1}' \
+    | tr '\n' ' '
+}
+
+# Pick a storage via whiptail menu, falling back to first available
+pick_storage() {
+  local content="$1"   # vztmpl or rootdir
+  local title="$2"
+  local prompt="$3"
+
+  local entries
+  entries=$(storage_menu "$content")
+
+  if [[ -z "$entries" ]]; then
+    msg_error "No storage found with content type '$content' — check your Proxmox storage config"
+  fi
+
+  # Count entries (each entry is "name name" = 2 words)
+  local count
+  count=$(echo "$entries" | wc -w)
+
+  if [[ "$count" -eq 2 ]]; then
+    # Only one storage — use it automatically
+    echo "$entries" | awk '{print $1}'
+    return
+  fi
+
+  # Multiple — show menu
+  # shellcheck disable=SC2086
+  whiptail --menu "$prompt" 16 60 8 $entries \
+    --title "$title" 3>&1 1>&2 2>&3 || exit 0
+}
+
 # ── Template handling ──────────────────────────────────────────────────────────
 get_template() {
-  local TEMPLATE_STORAGE="local"
-
-  # Check for already-downloaded debian-13 template
+  # Check for already-downloaded debian-13 template on chosen storage
   local existing
   existing=$(pveam list "$TEMPLATE_STORAGE" 2>/dev/null \
     | awk '{print $1}' | grep "debian-13" | sort -V | tail -1 || true)
@@ -70,7 +110,6 @@ get_template() {
     | awk '{print $2}' | grep "^debian-13" | sort -V | tail -1 || true)
 
   if [[ -z "$avail" ]]; then
-    # Fallback: try debian-12 if 13 not yet in list
     msg_warn "Debian 13 template not found in pveam — trying Debian 12 as fallback"
     avail=$(pveam available --section system 2>/dev/null \
       | awk '{print $2}' | grep "^debian-12" | sort -V | tail -1 || true)
@@ -78,7 +117,7 @@ get_template() {
     msg_warn "Using: $avail"
   fi
 
-  msg_info "Downloading $avail..."
+  msg_info "Downloading $avail to ${TEMPLATE_STORAGE}..."
   pveam download "$TEMPLATE_STORAGE" "$avail" &>/dev/null; msg_ok
   TEMPLATE_PATH="${TEMPLATE_STORAGE}:vztmpl/${avail}"
 }
@@ -91,31 +130,37 @@ default_mode() {
   CT_RAM=512
   CT_DISK=4
   CT_BRIDGE="vmbr0"
-  CT_STORAGE=$(pvesm status -content rootdir 2>/dev/null \
-    | awk 'NR>1 && $1!="Name" {print $1; exit}' || echo "local-lvm")
   CT_IP="dhcp"
   CT_GW=""
 
+  echo -e "  ${BOLD}Storage selection${NC}"
+  echo ""
+
+  TEMPLATE_STORAGE=$(pick_storage "vztmpl" \
+    "LAN Tracker — Template Storage" \
+    "Where should the Debian template be downloaded/stored?")
+
+  CT_STORAGE=$(pick_storage "rootdir" \
+    "LAN Tracker — Container Storage" \
+    "Where should the LXC container be installed?")
+
+  echo ""
   echo -e "  ${BOLD}Default settings:${NC}"
-  echo -e "  CT ID:    ${CT_CTID:-$CTID}"
-  echo -e "  Hostname: $CT_HOSTNAME"
-  echo -e "  CPU:      $CT_CORES core(s)"
-  echo -e "  RAM:      ${CT_RAM} MB"
-  echo -e "  Disk:     ${CT_DISK} GB  on  $CT_STORAGE"
-  echo -e "  Network:  DHCP on $CT_BRIDGE"
+  echo -e "  CT ID:             $CTID"
+  echo -e "  Hostname:          $CT_HOSTNAME"
+  echo -e "  CPU:               $CT_CORES core(s)"
+  echo -e "  RAM:               ${CT_RAM} MB"
+  echo -e "  Disk:              ${CT_DISK} GB  on  $CT_STORAGE"
+  echo -e "  Network:           DHCP on $CT_BRIDGE"
+  echo -e "  Template storage:  $TEMPLATE_STORAGE"
   echo ""
   read -rp "  Proceed? [Y/n] " ok
   [[ "$ok" == [nN] ]] && exit 0
 }
 
 advanced_mode() {
-  which whiptail &>/dev/null || { DEBIAN_FRONTEND=noninteractive apt-get install -y -qq whiptail; }
-
   local next_id
   next_id=$(pvesh get /cluster/nextid 2>/dev/null || echo "200")
-  local def_storage
-  def_storage=$(pvesm status -content rootdir 2>/dev/null \
-    | awk 'NR>1 && $1!="Name" {print $1; exit}' || echo "local-lvm")
 
   CTID=$(whiptail --inputbox "Container ID" 8 50 "$next_id" \
     --title "LAN Tracker — Advanced Setup" 3>&1 1>&2 2>&3) || exit 0
@@ -132,14 +177,19 @@ advanced_mode() {
   CT_DISK=$(whiptail --inputbox "Disk Size (GB)" 8 50 "4" \
     --title "LAN Tracker — Advanced Setup" 3>&1 1>&2 2>&3) || exit 0
 
-  CT_STORAGE=$(whiptail --inputbox "Storage Pool" 8 50 "$def_storage" \
-    --title "LAN Tracker — Advanced Setup" 3>&1 1>&2 2>&3) || exit 0
+  TEMPLATE_STORAGE=$(pick_storage "vztmpl" \
+    "LAN Tracker — Advanced Setup" \
+    "Template storage — where to download/store the Debian template:")
+
+  CT_STORAGE=$(pick_storage "rootdir" \
+    "LAN Tracker — Advanced Setup" \
+    "Container storage — where to install the LXC:")
 
   CT_BRIDGE=$(whiptail --inputbox "Network Bridge" 8 50 "vmbr0" \
     --title "LAN Tracker — Advanced Setup" 3>&1 1>&2 2>&3) || exit 0
 
   local ip_mode
-  ip_mode=$(whiptail --menu "Network" 12 55 2 \
+  ip_mode=$(whiptail --menu "Network Configuration" 12 55 2 \
     "dhcp"   "DHCP (automatic IP)" \
     "static" "Static IP" \
     --title "LAN Tracker — Advanced Setup" 3>&1 1>&2 2>&3) || exit 0
@@ -213,10 +263,11 @@ print_result() {
   echo -e "  ${GRN}${BOLD}║   LAN Tracker installed successfully!   ║${NC}"
   echo -e "  ${GRN}${BOLD}╚══════════════════════════════════════════╝${NC}"
   echo ""
-  echo -e "  ${BOLD}Container:${NC} CT${CTID}  (${CT_HOSTNAME})"
-  echo -e "  ${BOLD}Resources:${NC} ${CT_CORES} CPU · ${CT_RAM} MB RAM · ${CT_DISK} GB disk"
-  echo -e "  ${BOLD}Storage:${NC}   ${CT_STORAGE}"
-  echo -e "  ${BOLD}Web UI:${NC}    ${CYN}http://${ct_ip}:8080${NC}"
+  echo -e "  ${BOLD}Container:${NC}         CT${CTID}  (${CT_HOSTNAME})"
+  echo -e "  ${BOLD}Resources:${NC}         ${CT_CORES} CPU · ${CT_RAM} MB RAM · ${CT_DISK} GB disk"
+  echo -e "  ${BOLD}Container storage:${NC} ${CT_STORAGE}"
+  echo -e "  ${BOLD}Template storage:${NC}  ${TEMPLATE_STORAGE}"
+  echo -e "  ${BOLD}Web UI:${NC}            ${CYN}http://${ct_ip}:8080${NC}"
   echo ""
   echo -e "  Manage the container: ${BOLD}pct enter ${CTID}${NC}"
   echo ""
@@ -226,10 +277,11 @@ print_result() {
 header
 check_root
 check_proxmox
+ensure_whiptail
 
 MODE=$(whiptail --menu "Installation Type" 14 58 2 \
-  "default"  "  Default   — Recommended settings, no prompts" \
-  "advanced" "  Advanced  — Custom CPU, RAM, disk, IP" \
+  "default"  "  Default   — Recommended settings, minimal prompts" \
+  "advanced" "  Advanced  — Custom CPU, RAM, disk, IP, bridge" \
   --title "LAN Tracker Network Sonar" 3>&1 1>&2 2>&3) || exit 0
 
 echo ""
