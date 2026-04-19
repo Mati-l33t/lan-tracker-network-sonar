@@ -2,7 +2,10 @@
 # LAN Tracker Network Sonar — Install Script
 # https://github.com/Mati-l33t/lan-tracker-network-sonar
 
-set -euo pipefail
+set -e
+exec 2>&1   # merge stderr into stdout so errors are always visible
+
+export DEBIAN_FRONTEND=noninteractive
 
 # ── Colours ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'
@@ -52,7 +55,7 @@ check_os() {
 }
 
 gen_password() {
-  tr -dc 'A-Za-z0-9!@#%^&*' < /dev/urandom | head -c 28
+  tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 28 || true
 }
 
 install_deps() {
