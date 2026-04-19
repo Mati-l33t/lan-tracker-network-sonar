@@ -6,6 +6,7 @@ set -e
 exec 2>&1   # merge stderr into stdout so errors are always visible
 
 export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C
 
 # ── Colours ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'
@@ -59,7 +60,7 @@ check_os() {
 }
 
 gen_password() {
-  tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 28 || true
+  tr -dc 'A-Za-z0-9' < /dev/urandom 2>/dev/null | head -c 28 || true
 }
 
 setup_autologin() {
@@ -109,7 +110,7 @@ install_app() {
 
   msg_info "Creating Python virtual environment..."
   python3 -m venv "$INSTALL_DIR/venv"
-  "$INSTALL_DIR/venv/bin/pip" install -q --upgrade pip
+  "$INSTALL_DIR/venv/bin/pip" install -q --upgrade pip 2>/dev/null || true
   "$INSTALL_DIR/venv/bin/pip" install -q \
     "fastapi" "uvicorn[standard]" "mysql-connector-python" "pydantic"
   msg_ok "Application installed at $INSTALL_DIR"

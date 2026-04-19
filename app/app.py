@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os
+import os, ipaddress
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
@@ -21,13 +21,34 @@ def _db_cfg():
         "password": os.environ.get("LT_DB_PASS", ""),
     }
 
-DEFAULT = {
-    "subnet":       "192.168.1.0/24",
-    "static_start": "192.168.1.2",
-    "static_end":   "192.168.1.99",
-    "dhcp_start":   "192.168.1.100",
-    "dhcp_end":     "192.168.1.200",
-}
+def _detect_defaults():
+    try:
+        res = subprocess.run(["ip", "route", "show"], capture_output=True, text=True)
+        for line in res.stdout.splitlines():
+            m = re.match(r'^(\d+\.\d+\.\d+\.\d+/\d+)\s+dev\s+\S+\s+proto\s+kernel', line)
+            if m:
+                net_str = m.group(1)
+                if not net_str.startswith("127."):
+                    net  = ipaddress.ip_network(net_str, strict=False)
+                    base = str(net.network_address).rsplit(".", 1)[0]
+                    return {
+                        "subnet":       net_str,
+                        "static_start": f"{base}.2",
+                        "static_end":   f"{base}.99",
+                        "dhcp_start":   f"{base}.100",
+                        "dhcp_end":     f"{base}.200",
+                    }
+    except Exception:
+        pass
+    return {
+        "subnet":       "192.168.1.0/24",
+        "static_start": "192.168.1.2",
+        "static_end":   "192.168.1.99",
+        "dhcp_start":   "192.168.1.100",
+        "dhcp_end":     "192.168.1.200",
+    }
+
+DEFAULT = _detect_defaults()
 
 class Cfg(BaseModel):
     subnet:str; staticStart:str; staticEnd:str; dhcpStart:str; dhcpEnd:str
