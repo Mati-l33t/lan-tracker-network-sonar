@@ -62,6 +62,17 @@ gen_password() {
   tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 28 || true
 }
 
+setup_autologin() {
+  mkdir -p /etc/systemd/system/container-getty@1.service.d
+  cat > /etc/systemd/system/container-getty@1.service.d/override.conf << 'EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
+EOF
+  systemctl daemon-reload
+  msg_ok "Autologin configured"
+}
+
 install_deps() {
   msg_info "Updating package list..."
   apt-get update -qq
@@ -156,6 +167,7 @@ check_os
 
 DB_PASS=$(gen_password)
 
+setup_autologin
 install_deps
 setup_db  "$DB_PASS"
 install_app
