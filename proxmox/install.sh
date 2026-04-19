@@ -84,28 +84,28 @@ get_template() {
     local hit
     hit=$(pveam list "$stor" 2>/dev/null | awk '{print $1}' | grep "debian-13" | sort -V | tail -1 || true)
     if [ -n "$hit" ]; then
-      msg_ok "Template found on '$stor': $hit"
+      echo "  ${CM}✔️   Template found on '${stor}': ${hit}${CL}" >&2
       echo "$hit"
       return
     fi
   done
 
   # Not found — download to chosen storage
-  msg_info "Updating template list"
+  echo -e "  ${YW}  ⏳ Updating template list...${CL}" >&2
   pveam update >/dev/null 2>&1
 
   local avail
   avail=$(pveam available --section system 2>/dev/null | awk '{print $2}' | grep "^debian-13" | sort -V | tail -1 || true)
 
   if [ -z "$avail" ]; then
-    msg_info "Debian 13 not available yet — falling back to Debian 12"
+    echo -e "  ${YW}  ⏳ Debian 13 not available yet — falling back to Debian 12...${CL}" >&2
     avail=$(pveam available --section system 2>/dev/null | awk '{print $2}' | grep "^debian-12" | sort -V | tail -1 || true)
     [ -z "$avail" ] && msg_error "No Debian template available in pveam"
   fi
 
-  msg_info "Downloading $avail to $storage"
+  echo -e "  ${YW}  ⏳ Downloading ${avail} to ${storage}...${CL}" >&2
   pveam download "$storage" "$avail" >/dev/null 2>&1
-  msg_ok "Template downloaded"
+  echo -e "  ${CM}✔️   Template downloaded${CL}" >&2
   echo "${storage}:vztmpl/${avail}"
 }
 
