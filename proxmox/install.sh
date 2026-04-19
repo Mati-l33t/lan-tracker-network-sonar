@@ -7,284 +7,283 @@
 
 set -euo pipefail
 
-# ── Colours ────────────────────────────────────────────────────────────────────
-RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'
-BLU='\033[0;34m'; CYN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
-
-REPO_URL="https://github.com/Mati-l33t/lan-tracker-network-sonar"
 RAW_URL="https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main"
+REPO_URL="https://github.com/Mati-l33t/lan-tracker-network-sonar"
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
-msg_info()  { printf "  ${BLU}➤${NC}  %-50s" "$1"; }
-msg_ok()    { echo -e "${GRN}Done${NC}"; }
-msg_done()  { echo -e "  ${GRN}✔${NC}  $1"; }
-msg_warn()  { echo -e "  ${YLW}⚠${NC}  $1"; }
-msg_error() { echo -e "\n  ${RED}✘  ERROR:${NC} $1\n"; exit 1; }
+YW="\033[33m"
+GN="\033[1;92m"
+RD="\033[01;31m"
+BL="\033[36m"
+CM="\033[0;92m"
+CL="\033[m"
+BOLD="\033[1m"
+TAB="  "
 
-# Reliable whiptail wrapper — renders on /dev/tty, stores result in a named variable
-# Usage: ask VARNAME --menu "prompt" h w l item1 desc1 ...
-#        ask VARNAME --inputbox "prompt" h w "default"
-ask() {
-  local -n _ask_ref="$1"; shift
-  local tmpfile
-  tmpfile=$(mktemp)
-  if ! whiptail "$@" \
-      --title "LAN Tracker Network Sonar" \
-      2>"$tmpfile" </dev/tty >/dev/tty; then
-    rm -f "$tmpfile"
-    echo -e "\n  Cancelled."
-    exit 0
-  fi
-  _ask_ref=$(<"$tmpfile")
-  rm -f "$tmpfile"
-}
+APP="LAN Tracker"
+NSAPP="lan-tracker"
+var_cpu="1"
+var_ram="512"
+var_disk="4"
+var_unprivileged="1"
 
-header() {
+msg_info()  { echo -e "${TAB}${YW}  ⏳ ${1}...${CL}"; }
+msg_ok()    { echo -e "${TAB}${CM}  ✔️   ${1}${CL}"; }
+msg_error() { echo -e "${TAB}${RD}  ✖️   ${1}${CL}"; exit 1; }
+
+header_info() {
   clear
-  echo -e "${CYN}${BOLD}"
-  echo "  ██╗      █████╗ ███╗   ██╗    ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗ "
-  echo "  ██║     ██╔══██╗████╗  ██║    ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗"
-  echo "  ██║     ███████║██╔██╗ ██║       ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝"
-  echo "  ██║     ██╔══██║██║╚██╗██║       ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗"
-  echo "  ███████╗██║  ██║██║ ╚████║       ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║"
-  echo "  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝       ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝"
-  echo -e "${NC}"
-  echo -e "  ${BOLD}Network Sonar${NC}  ·  Proxmox LXC Installer  ·  ${BLU}${REPO_URL}${NC}"
-  echo -e "  ${YLW}Creates a Debian LXC container and installs LAN Tracker inside it.${NC}"
+  cat << 'EOF'
+  ██╗      █████╗ ███╗   ██╗    ████████╗██████╗  █████╗  ██████╗██╗  ██╗███████╗██████╗
+  ██║     ██╔══██╗████╗  ██║    ╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
+  ██║     ███████║██╔██╗ ██║       ██║   ██████╔╝███████║██║     █████╔╝ █████╗  ██████╔╝
+  ██║     ██╔══██║██║╚██╗██║       ██║   ██╔══██╗██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
+  ███████╗██║  ██║██║ ╚████║       ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║
+  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝       ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+EOF
+  echo -e "${TAB}${BOLD}${BL}LAN Tracker Network Sonar — Proxmox LXC Installer${CL}"
+  echo -e "${TAB}${YW}GitHub: ${REPO_URL}${CL}"
   echo ""
-}
-
-check_root()    { [[ $EUID -ne 0 ]] && msg_error "Run as root on the Proxmox host"; }
-check_proxmox() {
-  command -v pveversion &>/dev/null || msg_error "This script must run on a Proxmox VE host"
-  command -v pct        &>/dev/null || msg_error "pct not found — is this Proxmox VE?"
-  msg_done "Proxmox VE: $(pveversion | head -1)"
-}
-ensure_whiptail() {
-  command -v whiptail &>/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq whiptail
 }
 
 # ── Storage picker ─────────────────────────────────────────────────────────────
-# Sets the named variable to the chosen storage.
-# If only one storage exists for that content type, picks it automatically.
-pick_storage() {
-  local content="$1"   # vztmpl | rootdir
-  local prompt="$2"
-  local -n _ps_result="$3"
+select_storage() {
+  local type="$1"
+  local content="rootdir"
+  [ "$type" = "template" ] && content="vztmpl"
 
-  # Build "name name" pairs for whiptail
-  local entries
-  entries=$(pvesm status -content "$content" 2>/dev/null \
-    | awk 'NR>1 && $1!="Name" {print $1, $1}' || true)
+  local names=()
+  while IFS= read -r name; do
+    names+=("$name" " ")
+  done < <(pvesm status -content "$content" 2>/dev/null | awk 'NR>1 {print $1}')
 
-  [[ -z "$entries" ]] && msg_error "No storage with content type '$content' found — check Proxmox storage config"
-
-  local count
-  count=$(echo "$entries" | wc -w)
-
-  if [[ "$count" -eq 2 ]]; then
-    _ps_result=$(echo "$entries" | awk '{print $1}')
-    msg_done "$prompt → $_ps_result (only option)"
+  local count=$(( ${#names[@]} / 2 ))
+  if [ "$count" -eq 0 ]; then
+    msg_error "No suitable ${type} storage found — check Proxmox storage config"
+  fi
+  if [ "$count" -eq 1 ]; then
+    echo "${names[0]}"
     return
   fi
 
-  # Multiple storages — show menu
-  # Build args array to avoid word-splitting issues
-  local -a menu_args=()
-  while read -r name _; do
-    menu_args+=("$name" "$name")
-  done < <(pvesm status -content "$content" 2>/dev/null | awk 'NR>1 && $1!="Name" {print $1, $1}')
-
-  ask _ps_result --menu "$prompt" 16 60 8 "${menu_args[@]}"
+  whiptail --backtitle "LAN Tracker Installer" \
+    --title "$([ "$type" = "template" ] && echo "TEMPLATE STORAGE" || echo "CONTAINER STORAGE")" \
+    --menu "\nWhere to store the ${type}?" 16 58 8 \
+    "${names[@]}" \
+    3>&1 1>&2 2>&3
 }
 
-# ── Template handling ──────────────────────────────────────────────────────────
+# ── Template ───────────────────────────────────────────────────────────────────
 get_template() {
-  # Scan ALL storages with vztmpl content for an existing debian-13 template
-  local all_storages
-  all_storages=$(pvesm status -content vztmpl 2>/dev/null \
-    | awk 'NR>1 && $1!="Name" {print $1}' || true)
+  local storage="$1"
 
-  local found_path=""
+  # Scan ALL storages with vztmpl for an existing debian-13 template first
+  local all_storages
+  all_storages=$(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 {print $1}' || true)
+
   for stor in $all_storages; do
     local hit
-    hit=$(pveam list "$stor" 2>/dev/null \
-      | awk '{print $1}' | grep "debian-13" | sort -V | tail -1 || true)
-    if [[ -n "$hit" ]]; then
-      found_path="$hit"
-      msg_done "Template found on '$stor': $hit"
-      break
+    hit=$(pveam list "$stor" 2>/dev/null | awk '{print $1}' | grep "debian-13" | sort -V | tail -1 || true)
+    if [ -n "$hit" ]; then
+      msg_ok "Template found on '$stor': $hit"
+      echo "$hit"
+      return
     fi
   done
 
-  if [[ -n "$found_path" ]]; then
-    TEMPLATE_PATH="$found_path"
-    return
-  fi
-
-  # Not found anywhere — download to the user-selected TEMPLATE_STORAGE
-  msg_info "Updating template list..."
-  pveam update &>/dev/null; msg_ok
+  # Not found — download to chosen storage
+  msg_info "Updating template list"
+  pveam update >/dev/null 2>&1
 
   local avail
-  avail=$(pveam available --section system 2>/dev/null \
-    | awk '{print $2}' | grep "^debian-13" | sort -V | tail -1 || true)
+  avail=$(pveam available --section system 2>/dev/null | awk '{print $2}' | grep "^debian-13" | sort -V | tail -1 || true)
 
-  if [[ -z "$avail" ]]; then
-    msg_warn "Debian 13 not in pveam — falling back to Debian 12"
-    avail=$(pveam available --section system 2>/dev/null \
-      | awk '{print $2}' | grep "^debian-12" | sort -V | tail -1 || true)
-    [[ -z "$avail" ]] && msg_error "No Debian template available in pveam"
+  if [ -z "$avail" ]; then
+    msg_info "Debian 13 not available yet — falling back to Debian 12"
+    avail=$(pveam available --section system 2>/dev/null | awk '{print $2}' | grep "^debian-12" | sort -V | tail -1 || true)
+    [ -z "$avail" ] && msg_error "No Debian template available in pveam"
   fi
 
-  msg_info "Downloading $avail to ${TEMPLATE_STORAGE}..."
-  pveam download "$TEMPLATE_STORAGE" "$avail" &>/dev/null; msg_ok
-  TEMPLATE_PATH="${TEMPLATE_STORAGE}:vztmpl/${avail}"
+  msg_info "Downloading $avail to $storage"
+  pveam download "$storage" "$avail" >/dev/null 2>&1
+  msg_ok "Template downloaded"
+  echo "${storage}:vztmpl/${avail}"
 }
 
-# ── Install modes ──────────────────────────────────────────────────────────────
-default_mode() {
-  CTID=$(pvesh get /cluster/nextid 2>/dev/null || echo "200")
-  CT_HOSTNAME="lan-tracker"
-  CT_CORES=1
-  CT_RAM=512
-  CT_DISK=4
-  CT_BRIDGE="vmbr0"
-  CT_IP="dhcp"
-  CT_GW=""
+# ── Default settings ───────────────────────────────────────────────────────────
+default_settings() {
+  CTID=$(pvesh get /cluster/nextid 2>/dev/null || echo 200)
+  HN="$NSAPP"
+  DISK_SIZE="$var_disk"
+  CORE_COUNT="$var_cpu"
+  RAM_SIZE="$var_ram"
+  BRG="vmbr0"
+  NET="dhcp"
+  GATE=""
+  VLAN_TAG=""
+  UNPRIVILEGED="$var_unprivileged"
 
-  echo -e "  ${BOLD}Select storage:${NC}"
+  echo -e "${TAB}${BOLD}⚙️  Using Default Settings${CL}"
+  echo -e "${TAB}🆔  Container ID:  ${BL}${CTID}${CL}"
+  echo -e "${TAB}🏠  Hostname:      ${BL}${HN}${CL}"
+  echo -e "${TAB}💾  Disk Size:     ${BL}${DISK_SIZE} GB${CL}"
+  echo -e "${TAB}🧠  CPU Cores:     ${BL}${CORE_COUNT}${CL}"
+  echo -e "${TAB}🛠️  RAM:           ${BL}${RAM_SIZE} MB${CL}"
+  echo -e "${TAB}🌉  Bridge:        ${BL}${BRG}${CL}"
+  echo -e "${TAB}📡  IP:            ${BL}DHCP${CL}"
   echo ""
-  pick_storage "vztmpl" "Template storage (where to download/store the Debian template)" TEMPLATE_STORAGE
-  pick_storage "rootdir" "Container storage (where to install the LXC)"                 CT_STORAGE
-  echo ""
-  echo -e "  ${BOLD}Default settings:${NC}"
-  echo -e "  CT ID:             $CTID"
-  echo -e "  Hostname:          $CT_HOSTNAME"
-  echo -e "  CPU:               $CT_CORES core(s)"
-  echo -e "  RAM:               ${CT_RAM} MB"
-  echo -e "  Disk:              ${CT_DISK} GB  on  $CT_STORAGE"
-  echo -e "  Network:           DHCP on $CT_BRIDGE"
-  echo -e "  Template storage:  $TEMPLATE_STORAGE"
-  echo ""
-  read -rp "  Proceed? [Y/n] " ok </dev/tty
-  [[ "$ok" == [nN] ]] && exit 0
 }
 
-advanced_mode() {
-  local next_id
-  next_id=$(pvesh get /cluster/nextid 2>/dev/null || echo "200")
+# ── Advanced settings ──────────────────────────────────────────────────────────
+advanced_settings() {
+  local nextid
+  nextid=$(pvesh get /cluster/nextid 2>/dev/null || echo 200)
 
-  ask CTID        --inputbox "Container ID"                                  8 50 "$next_id"
-  ask CT_HOSTNAME --inputbox "Hostname"                                      8 50 "lan-tracker"
-  ask CT_CORES    --inputbox "CPU Cores"                                     8 50 "1"
-  ask CT_RAM      --inputbox "RAM (MB)"                                      8 50 "512"
-  ask CT_DISK     --inputbox "Disk Size (GB)"                                8 50 "4"
-  ask CT_BRIDGE   --inputbox "Network Bridge"                                8 50 "vmbr0"
+  CTID=$(whiptail --backtitle "LAN Tracker Installer" --title "CONTAINER ID" \
+    --inputbox "\nSet Container ID:" 8 58 "$nextid" 3>&1 1>&2 2>&3) || exit
 
-  pick_storage "vztmpl" "Template storage (where to download/store the Debian template)" TEMPLATE_STORAGE
-  pick_storage "rootdir" "Container storage (where to install the LXC)"                 CT_STORAGE
+  HN=$(whiptail --backtitle "LAN Tracker Installer" --title "HOSTNAME" \
+    --inputbox "\nSet Hostname:" 8 58 "$NSAPP" 3>&1 1>&2 2>&3) || exit
+  HN=$(echo "${HN,,}" | tr -d ' ')
 
-  local ip_mode
-  ask ip_mode --menu "Network Configuration" 10 55 2 \
-    "dhcp"   "DHCP (automatic IP)" \
-    "static" "Static IP"
+  DISK_SIZE=$(whiptail --backtitle "LAN Tracker Installer" --title "DISK SIZE" \
+    --inputbox "\nSet Disk Size in GB:" 8 58 "$var_disk" 3>&1 1>&2 2>&3) || exit
 
-  CT_IP="dhcp"; CT_GW=""
-  if [[ "$ip_mode" == "static" ]]; then
-    ask CT_IP --inputbox "IP Address with prefix (e.g. 192.168.1.50/24)" 8 60 ""
-    ask CT_GW --inputbox "Gateway (e.g. 192.168.1.1)"                    8 55 ""
-  fi
-}
+  CORE_COUNT=$(whiptail --backtitle "LAN Tracker Installer" --title "CPU CORES" \
+    --inputbox "\nAllocate CPU Cores:" 8 58 "$var_cpu" 3>&1 1>&2 2>&3) || exit
 
-# ── LXC creation ──────────────────────────────────────────────────────────────
-create_lxc() {
-  msg_info "Creating LXC container CT${CTID}..."
+  RAM_SIZE=$(whiptail --backtitle "LAN Tracker Installer" --title "RAM" \
+    --inputbox "\nAllocate RAM in MB:" 8 58 "$var_ram" 3>&1 1>&2 2>&3) || exit
 
-  local net="name=eth0,bridge=${CT_BRIDGE}"
-  if [[ "$CT_IP" == "dhcp" ]]; then
-    net+=",ip=dhcp,ip6=auto"
+  # Bridge — list available vmbr interfaces
+  local bridge_opts=()
+  while IFS= read -r br; do
+    bridge_opts+=("$br" " ")
+  done < <(ip link show 2>/dev/null | awk -F': ' '/^[0-9]+: vmbr/{print $2}' | cut -d@ -f1)
+
+  if [ "${#bridge_opts[@]}" -gt 2 ]; then
+    BRG=$(whiptail --backtitle "LAN Tracker Installer" --title "NETWORK BRIDGE" \
+      --menu "\nSelect network bridge:" 16 58 6 "${bridge_opts[@]}" 3>&1 1>&2 2>&3) || exit
   else
-    net+=",ip=${CT_IP}"
-    [[ -n "$CT_GW" ]] && net+=",gw=${CT_GW}"
+    BRG="vmbr0"
   fi
 
-  pct create "$CTID" "$TEMPLATE_PATH" \
-    --hostname    "$CT_HOSTNAME" \
-    --cores       "$CT_CORES" \
-    --memory      "$CT_RAM" \
-    --rootfs      "${CT_STORAGE}:${CT_DISK}" \
-    --net0        "$net" \
-    --features    nesting=1 \
-    --unprivileged 1 \
-    --onboot      1 \
-    --start       0 \
-    --ostype      debian &>/dev/null
-  msg_ok
+  local ip_choice
+  ip_choice=$(whiptail --backtitle "LAN Tracker Installer" --title "IP CONFIGURATION" \
+    --menu "\nSelect IP configuration:" 12 58 2 \
+    "dhcp"   "Automatic (DHCP)" \
+    "static" "Static IP" \
+    3>&1 1>&2 2>&3) || exit
 
-  msg_info "Starting container..."
+  NET="dhcp"; GATE=""
+  if [ "$ip_choice" = "static" ]; then
+    NET=$(whiptail --backtitle "LAN Tracker Installer" --title "STATIC IP" \
+      --inputbox "\nEnter Static IP with CIDR:\n(e.g. 192.168.1.50/24)" 10 58 "" 3>&1 1>&2 2>&3) || exit
+    local gw
+    gw=$(whiptail --backtitle "LAN Tracker Installer" --title "GATEWAY" \
+      --inputbox "\nEnter Gateway IP:\n(e.g. 192.168.1.1)" 10 58 "" 3>&1 1>&2 2>&3) || exit
+    GATE=",gw=${gw}"
+  fi
+
+  local vlan_input
+  vlan_input=$(whiptail --backtitle "LAN Tracker Installer" --title "VLAN TAG" \
+    --inputbox "\nSet VLAN Tag (leave blank for none):" 8 58 "" 3>&1 1>&2 2>&3) || exit
+  [ -n "$vlan_input" ] && VLAN_TAG=",tag=${vlan_input}" || VLAN_TAG=""
+
+  UNPRIVILEGED="$var_unprivileged"
+
+  echo -e "${TAB}${BOLD}🧩 Using Advanced Settings${CL}"
+  echo -e "${TAB}🆔  Container ID:  ${BL}${CTID}${CL}"
+  echo -e "${TAB}🏠  Hostname:      ${BL}${HN}${CL}"
+  echo -e "${TAB}💾  Disk Size:     ${BL}${DISK_SIZE} GB${CL}"
+  echo -e "${TAB}🧠  CPU Cores:     ${BL}${CORE_COUNT}${CL}"
+  echo -e "${TAB}🛠️  RAM:           ${BL}${RAM_SIZE} MB${CL}"
+  echo -e "${TAB}🌉  Bridge:        ${BL}${BRG}${CL}"
+  echo -e "${TAB}📡  IP:            ${BL}${NET}${CL}"
+  echo ""
+}
+
+# ── Build container ────────────────────────────────────────────────────────────
+build_container() {
+  msg_info "Selecting storage"
+  TEMPLATE_STORAGE=$(select_storage template)
+  CONTAINER_STORAGE=$(select_storage container)
+  msg_ok "Storage selected"
+
+  TEMPLATE=$(get_template "$TEMPLATE_STORAGE")
+  msg_ok "Template ready"
+
+  local tz
+  tz=$(timedatectl show --value --property=Timezone 2>/dev/null || echo "UTC")
+  [[ "$tz" == Etc/* ]] && tz="UTC"
+
+  msg_info "Creating LXC container ${CTID}"
+  pct create "$CTID" "$TEMPLATE" \
+    --hostname    "$HN" \
+    --cores       "$CORE_COUNT" \
+    --memory      "$RAM_SIZE" \
+    --rootfs      "${CONTAINER_STORAGE}:${DISK_SIZE}" \
+    --net0        "name=eth0,bridge=${BRG},ip=${NET}${GATE}${VLAN_TAG}" \
+    --features    "nesting=1" \
+    --unprivileged "$UNPRIVILEGED" \
+    --tags        "lan-tracker" \
+    --onboot      1 \
+    --timezone    "$tz" \
+    >/dev/null 2>&1
+  msg_ok "LXC container ${CTID} created"
+
+  msg_info "Starting container"
   pct start "$CTID"
   sleep 5
-  msg_ok
-}
+  msg_ok "Container started"
 
-install_in_lxc() {
-  msg_info "Waiting for network inside CT${CTID}..."
+  msg_info "Waiting for network"
   local tries=0
-  until pct exec "$CTID" -- ping -c1 -W2 1.1.1.1 &>/dev/null || (( tries++ >= 15 )); do
-    sleep 2
+  while ! pct exec "$CTID" -- ping -c1 -W2 8.8.8.8 >/dev/null 2>&1; do
+    sleep 3
+    tries=$((tries + 1))
+    if [ "$tries" -gt 15 ]; then
+      msg_error "Network not reachable inside container — check bridge/gateway"
+    fi
   done
-  (( tries >= 15 )) && msg_error "Container has no internet — check bridge/gateway"
-  msg_ok
+  msg_ok "Network connected"
 
-  msg_info "Installing LAN Tracker inside CT${CTID}..."
-  pct exec "$CTID" -- bash -c "
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update -qq
-    apt-get install -y -qq curl
-    bash <(curl -fsSL ${RAW_URL}/install.sh)
-  "
-  msg_ok
+  CT_IP=$(pct exec "$CTID" -- hostname -I 2>/dev/null | awk '{print $1}')
 }
 
-print_result() {
-  local ct_ip
-  ct_ip=$(pct exec "$CTID" -- hostname -I 2>/dev/null | awk '{print $1}')
+# ── Run install inside container ───────────────────────────────────────────────
+run_install() {
+  msg_info "Downloading install script"
+  curl -fsSL "${RAW_URL}/install.sh" -o /tmp/lan-tracker-install.sh
+  msg_ok "Install script downloaded"
 
-  echo ""
-  echo -e "  ${GRN}${BOLD}╔══════════════════════════════════════════╗${NC}"
-  echo -e "  ${GRN}${BOLD}║   LAN Tracker installed successfully!   ║${NC}"
-  echo -e "  ${GRN}${BOLD}╚══════════════════════════════════════════╝${NC}"
-  echo ""
-  echo -e "  ${BOLD}Container:${NC}         CT${CTID}  (${CT_HOSTNAME})"
-  echo -e "  ${BOLD}Resources:${NC}         ${CT_CORES} CPU · ${CT_RAM} MB RAM · ${CT_DISK} GB disk"
-  echo -e "  ${BOLD}Container storage:${NC} ${CT_STORAGE}"
-  echo -e "  ${BOLD}Template storage:${NC}  ${TEMPLATE_STORAGE}"
-  echo -e "  ${BOLD}Web UI:${NC}            ${CYN}http://${ct_ip}:8080${NC}"
-  echo ""
-  echo -e "  Manage the container: ${BOLD}pct enter ${CTID}${NC}"
-  echo ""
+  msg_info "Pushing install script into container"
+  pct push "$CTID" /tmp/lan-tracker-install.sh /tmp/lan-tracker-install.sh --perms 0755
+  rm -f /tmp/lan-tracker-install.sh
+  msg_ok "Install script ready"
+
+  msg_info "Running installer inside container"
+  pct exec "$CTID" -- bash /tmp/lan-tracker-install.sh
+  msg_ok "Installer finished"
 }
 
 # ── Main ───────────────────────────────────────────────────────────────────────
-header
-check_root
-check_proxmox
-ensure_whiptail
+header_info
 
-MODE=""
-ask MODE --menu "Installation Type" 14 60 2 \
-  "default"  "  Default   — Recommended settings, minimal prompts" \
-  "advanced" "  Advanced  — Custom CPU, RAM, disk, IP, bridge"
+if whiptail --backtitle "LAN Tracker Installer" --title "INSTALL MODE" \
+  --yesno "\nWould you like to use Default Settings?\n\nDefaults:\n  CPU: ${var_cpu} core\n  RAM: ${var_ram} MB\n  Disk: ${var_disk} GB\n  IP: DHCP\n  Type: Unprivileged" 16 58; then
+  default_settings
+else
+  advanced_settings
+fi
+
+echo -e "${TAB}${BOLD}🚀 Creating LAN Tracker LXC...${CL}"
+build_container
+run_install
 
 echo ""
-
-case "$MODE" in
-  default)  default_mode ;;
-  advanced) advanced_mode ;;
-esac
-
-get_template
-create_lxc
-install_in_lxc
-print_result
+msg_ok "LAN Tracker installation complete!"
+echo ""
+echo -e "${TAB}${GN}🌐 Web UI: ${BL}http://${CT_IP}:8080${CL}"
+echo -e "${TAB}${YW}📋 Logs:   journalctl -u lan-tracker -f  (inside container)${CL}"
+echo -e "${TAB}${YW}🖥️  Enter:  pct enter ${CTID}${CL}"
+echo ""
