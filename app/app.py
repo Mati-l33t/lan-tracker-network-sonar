@@ -29,26 +29,19 @@ def _detect_defaults():
             if m:
                 net_str = m.group(1)
                 if not net_str.startswith("127."):
-                    net  = ipaddress.ip_network(net_str, strict=False)
-                    base = str(net.network_address).rsplit(".", 1)[0]
-                    return {
-                        "subnet":       net_str,
-                        "static_start": f"{base}.2",
-                        "static_end":   f"{base}.99",
-                        "dhcp_start":   f"{base}.100",
-                        "dhcp_end":     f"{base}.200",
-                    }
+                    return {"subnet": net_str}
     except Exception:
         pass
-    return {
-        "subnet":       "192.168.1.0/24",
-        "static_start": "192.168.1.2",
-        "static_end":   "192.168.1.99",
-        "dhcp_start":   "192.168.1.100",
-        "dhcp_end":     "192.168.1.200",
-    }
+    return {"subnet": ""}
 
-DEFAULT = _detect_defaults()
+_detected_subnet = _detect_defaults().get("subnet", "")
+DEFAULT = {
+    "subnet":       _detected_subnet,
+    "static_start": "",
+    "static_end":   "",
+    "dhcp_start":   "",
+    "dhcp_end":     "",
+}
 
 class Cfg(BaseModel):
     subnet:str; staticStart:str; staticEnd:str; dhcpStart:str; dhcpEnd:str

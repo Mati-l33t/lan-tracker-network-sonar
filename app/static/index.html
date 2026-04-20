@@ -132,11 +132,7 @@
 
         /* ── TOP ROW (config + stats side by side) ─────────── */
         .top-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
             margin-bottom: 20px;
-            align-items: stretch;
         }
 
         /* ── STAGGER ANIMATIONS ───────────────────────────── */
@@ -232,14 +228,14 @@
         /* ── NOTIFICATIONS ────────────────────────────────── */
         #statusContainer {
             position: fixed;
-            top: 20px;
-            right: 75px;
+            bottom: 24px;
+            right: 24px;
             z-index: 3000;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             gap: 8px;
-            max-width: calc(100vw - 95px);
+            max-width: calc(100vw - 48px);
             width: fit-content;
         }
 
@@ -306,6 +302,7 @@
             color: var(--text);
             font-family: 'Courier Prime', monospace;
             font-size: 0.875rem;
+            line-height: 1.4;
             width: 100%;
             transition: border-color 0.2s, box-shadow 0.2s, background 0.4s;
         }
@@ -321,6 +318,7 @@
 
         .search-row { display: flex; gap: 7px; }
         .search-row input { flex: 1; min-width: 0; }
+        .search-row .btn { padding: 9px 11px; }
 
         /* ── BUTTONS ──────────────────────────────────────── */
         .btn-row {
@@ -408,8 +406,7 @@
         /* ── STATS ────────────────────────────────────────── */
         .stats {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(2, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
         }
 
@@ -680,7 +677,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 9000;
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.25s, visibility 0.25s;
@@ -983,16 +980,145 @@
         #backToTop.visible { opacity: 1; pointer-events: auto; }
         #backToTop:hover { background: var(--accent-glow); transform: translateY(-2px); }
 
+        /* ── HEADER BUTTONS ───────────────────────────────── */
+        .header-btns {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .hdr-icon-btn {
+            width: 36px;
+            height: 36px;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: color 0.2s, background 0.2s;
+        }
+        .hdr-icon-btn svg { width: 18px; height: 18px; transition: transform 0.3s; }
+        .hdr-icon-btn:hover { color: var(--accent); background: var(--surface2); }
+        .hdr-icon-btn:hover svg { transform: rotate(30deg); }
+
+        /* ── FIELD INFO TOOLTIP ───────────────────────────── */
+        .fg label { display: flex; align-items: center; gap: 5px; }
+        .field-info {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            border: 1px solid var(--text-dim);
+            color: var(--text-dim);
+            font-size: 0.52rem;
+            font-weight: 700;
+            cursor: help;
+            position: relative;
+            flex-shrink: 0;
+            font-family: sans-serif;
+            letter-spacing: 0;
+            text-transform: none;
+            line-height: 1;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .field-info:hover { border-color: var(--accent); color: var(--accent); }
+        .field-info .tip {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 10px 13px;
+            width: 230px;
+            font-size: 0.7rem;
+            color: var(--text);
+            z-index: 300;
+            line-height: 1.55;
+            letter-spacing: 0.02em;
+            text-transform: none;
+            font-weight: 400;
+            pointer-events: none;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+            white-space: normal;
+            font-family: inherit;
+        }
+        .field-info:hover .tip { display: block; }
+        .field-info .tip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%; left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-bottom-color: var(--accent);
+        }
+
+        /* ── SETTINGS OVERLAY ─────────────────────────────── */
+        .cfg-ov {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(3px);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 40px 0 40px;
+            z-index: 8000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+        .cfg-ov.is-open { opacity: 1; pointer-events: all; }
+        .cfg-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px;
+            width: 92%;
+            max-width: 700px;
+            overflow: visible;
+            box-shadow: var(--shadow);
+            transform: scale(0.94) translateY(10px);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            align-self: center;
+        }
+        .cfg-ov.is-open .cfg-modal { transform: scale(1) translateY(0); }
+        .cfg-modal-hd {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .cfg-modal-title {
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cfg-modal-title svg { color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; }
+
         /* ── RESPONSIVE ───────────────────────────────────── */
-        @media (max-width: 1000px) {
-            .top-row { grid-template-columns: 1fr; }
+        @media (max-width: 700px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 600px) {
             .wrap { padding: 16px 16px 0; }
             header { flex-direction: column; align-items: flex-start; gap: 12px; }
-            .theme-btn { align-self: flex-end; }
+            .header-btns { align-self: flex-end; }
             .cfg-grid { grid-template-columns: 1fr; }
-            #statusContainer { position: relative; top: auto; bottom: auto; right: auto; left: auto; transform: none; align-items: center; max-width: 100%; margin-bottom: 16px; }
+            #statusContainer { bottom: 16px; right: 16px; max-width: calc(100vw - 32px); }
         }
     </style>
 </head>
@@ -1001,6 +1127,74 @@
     <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
     </button>
+
+    <!-- SETTINGS OVERLAY -->
+    <div class="cfg-ov" id="cfgOverlay" onclick="cfgBackdropClick(event)">
+        <div class="cfg-modal">
+            <div class="cfg-modal-hd">
+                <div class="cfg-modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    Network Configuration
+                </div>
+                <button class="modal-x" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="cfg-grid">
+                <div class="fg">
+                    <label for="subnet">Subnet <span class="field-info">?<span class="tip">Your network's address range in CIDR notation. 192.168.0.0/24 covers all IPs from .1 to .254. Use Auto-detect if unsure.</span></span></label>
+                    <input type="text" id="subnet" placeholder="e.g. 192.168.0.0/24">
+                </div>
+                <div class="fg">
+                    <label for="staticStart">Static Range Start <span class="field-info">?<span class="tip">First IP you manually assign to devices (servers, NAS, printers). Most routers don't set this — just pick a low range like .2 that won't conflict with DHCP.</span></span></label>
+                    <input type="text" id="staticStart" placeholder="e.g. 192.168.0.2">
+                </div>
+                <div class="fg">
+                    <label for="staticEnd">Static Range End <span class="field-info">?<span class="tip">Last IP in your static range. Keep it well below your DHCP start so there's no overlap. e.g. if DHCP starts at .100, end static at .99.</span></span></label>
+                    <input type="text" id="staticEnd" placeholder="e.g. 192.168.0.99">
+                </div>
+                <div class="fg">
+                    <label for="dhcpStart">DHCP Range Start <span class="field-info">?<span class="tip">First IP your router auto-assigns to devices. Check your router's DHCP settings — commonly .100 or .50.</span></span></label>
+                    <input type="text" id="dhcpStart" placeholder="e.g. 192.168.0.100">
+                </div>
+                <div class="fg">
+                    <label for="dhcpEnd">DHCP Range End <span class="field-info">?<span class="tip">Last IP in your router's DHCP pool. Devices that join your network get assigned IPs up to this address. Commonly .200 or .254.</span></span></label>
+                    <input type="text" id="dhcpEnd" placeholder="e.g. 192.168.0.200">
+                </div>
+                <div class="fg">
+                    <label for="searchIp">Find IP <span class="field-info">?<span class="tip">Highlights and jumps to a specific IP address in the devices table below.</span></span></label>
+                    <div class="search-row">
+                        <input type="text" id="searchIp" placeholder="192.168.0.42" onkeyup="searchIpEnter(event)">
+                        <button class="btn" onclick="searchIp()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="fg">
+                    <label for="pingInput">Ping IP <span class="field-info">?<span class="tip">Test connectivity to any IP on your network. Useful to check if a device is reachable without running a full scan.</span></span></label>
+                    <div class="search-row">
+                        <input type="text" id="pingInput" placeholder="192.168.0.1" onkeydown="if(event.key==='Enter')doPing()">
+                        <button class="btn" onclick="doPing()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+                        </button>
+                    </div>
+                    <span id="pingResult" style="font-family:'Courier Prime',monospace;font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block"></span>
+                </div>
+            </div>
+            <div class="btn-row" style="margin-top:14px">
+                <button class="btn btn-save" onclick="saveConfig()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save Config
+                </button>
+                <button class="btn" onclick="autoDetectNetwork()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+                    Auto-detect
+                </button>
+                <button class="btn" onclick="resetConfig()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- NETWORK MAP OVERLAY -->
     <div class="map-ov" id="mapOverlay">
@@ -1024,85 +1218,24 @@
                     <div class="logo-sub">Network Sonar</div>
                 </div>
             </div>
-            <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
-                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            </button>
-        </header>
-        <div id="statusContainer"></div>
-
-        <!-- TOP ROW: config left, stats right -->
-        <div class="top-row s2">
-        <div class="panel">
-            <div class="panel-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-                </svg>
-                Network Configuration
-            </div>
-            <div class="cfg-grid">
-                <div class="fg">
-                    <label for="subnet">Subnet</label>
-                    <input type="text" id="subnet" placeholder="e.g. 10.0.0.0/24">
-                </div>
-                <div class="fg">
-                    <label for="staticStart">Static Range Start</label>
-                    <input type="text" id="staticStart" placeholder="e.g. 10.0.0.2">
-                </div>
-                <div class="fg">
-                    <label for="staticEnd">Static Range End</label>
-                    <input type="text" id="staticEnd" placeholder="e.g. 10.0.0.99">
-                </div>
-                <div class="fg">
-                    <label for="dhcpStart">DHCP Range Start</label>
-                    <input type="text" id="dhcpStart" placeholder="e.g. 10.0.0.100">
-                </div>
-                <div class="fg">
-                    <label for="dhcpEnd">DHCP Range End</label>
-                    <input type="text" id="dhcpEnd" placeholder="e.g. 10.0.0.200">
-                </div>
-                <div class="fg">
-                    <label for="searchIp">Find IP</label>
-                    <div class="search-row">
-                        <input type="text" id="searchIp" placeholder="e.g. 10.0.0.42" onkeyup="searchIpEnter(event)">
-                        <button class="btn" onclick="searchIp()">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="fg">
-                    <label for="pingInput">Ping IP</label>
-                    <div class="search-row">
-                        <input type="text" id="pingInput" placeholder="e.g. 10.0.0.1" onkeydown="if(event.key==='Enter')doPing()">
-                        <button class="btn" onclick="doPing()">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
-                        </button>
-                    </div>
-                    <span id="pingResult" style="font-family:'Courier Prime',monospace;font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block"></span>
-                </div>
-            </div>
-            <div class="btn-row">
-                <button class="btn btn-save" onclick="saveConfig()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Save Config
-                </button>
+            <div class="header-btns">
                 <button class="btn btn-scan" id="scanBtn" onclick="startScan()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4"/><path d="M17.7 6.3a8 8 0 010 11.4"/></svg>
                     Scan Network
                 </button>
-                <button class="btn" onclick="autoDetectNetwork()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
-                    Auto-detect
+                <button class="hdr-icon-btn" onclick="openSettings()" title="Network Configuration">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 </button>
-                <button class="btn" onclick="resetConfig()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                    Reset
+                <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                    <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 </button>
             </div>
-        </div>
+        </header>
+        <div id="statusContainer"></div>
 
-        <!-- STATS -->
+        <!-- TOP ROW: stats -->
+        <div class="top-row s2">
         <div class="stats">
             <div class="stat stat--total">
                 <div class="stat-num" id="totalIps">—</div>
@@ -1153,7 +1286,7 @@
                                     <th>MAC</th>
                                     <th>Ping</th>
                                     <th>Services</th>
-                                    <th>7-Day Activity</th>
+                                    <th title="Each bar = one day. Filled = seen online that day. Updates after each scan.">7-Day Activity</th>
                                 </tr>
                             </thead>
                             <tbody id="ipTableBody">
@@ -1236,7 +1369,7 @@
             </div>
             <div class="fg">
                 <label for="modalUrl">Web Address (optional)</label>
-                <input type="url" id="modalUrl" placeholder="https://10.0.0.16:8006">
+                <input type="url" id="modalUrl" placeholder="https://192.168.0.16:8006">
                 <div class="hint">Click the device name to open this URL</div>
             </div>
             <div class="fg">
@@ -1373,13 +1506,16 @@
         }
 
         function resetConfig() {
-            document.getElementById('confirmOverlay').classList.add('is-open');
-            document.getElementById('confirmOkBtn').onclick = function() {
-                closeConfirm();
-                ['subnet','staticStart','staticEnd','dhcpStart','dhcpEnd']
-                    .forEach(function(id) { document.getElementById(id).value = ''; });
-                showStatus('Fields cleared — enter new values and save');
-            };
+            closeSettings();
+            setTimeout(function() {
+                document.getElementById('confirmOverlay').classList.add('is-open');
+                document.getElementById('confirmOkBtn').onclick = function() {
+                    closeConfirm();
+                    ['subnet','staticStart','staticEnd','dhcpStart','dhcpEnd']
+                        .forEach(function(id) { document.getElementById(id).value = ''; });
+                    showStatus('Fields cleared — enter new values and save');
+                };
+            }, 200);
         }
         function closeConfirm() {
             document.getElementById('confirmOverlay').classList.remove('is-open');
@@ -1410,11 +1546,7 @@
                 showStatus('Detecting network...');
                 const res = await fetch(API_BASE + '/api/detect-network');
                 const d   = await res.json();
-                document.getElementById('subnet').value      = d.subnet       || '';
-                document.getElementById('staticStart').value = d.static_start || '';
-                document.getElementById('staticEnd').value   = d.static_end   || '';
-                document.getElementById('dhcpStart').value   = d.dhcp_start   || '';
-                document.getElementById('dhcpEnd').value     = d.dhcp_end     || '';
+                document.getElementById('subnet').value = d.subnet || '';
                 showStatus('Network detected: ' + d.subnet + ' — click Save Config to apply');
             } catch (e) { showError('Auto-detect failed: ' + e.message); }
         }
@@ -1487,9 +1619,14 @@
 
         function sparklineHtml(days) {
             if (!days) return '';
+            var today = new Date();
+            var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
             return '<div class="sparkline">' + days.map(function(on, i) {
+                var d = new Date(today);
+                d.setDate(d.getDate() - (6 - i));
+                var label = dayNames[d.getDay()] + (i === 6 ? ' (today)' : '');
                 var cls = 'spark-day' + (on ? ' on' : '') + (i === 6 ? ' spark-today' : '');
-                return '<div class="' + cls + '" title="' + ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i] + '"></div>';
+                return '<div class="' + cls + '" title="' + label + '"></div>';
             }).join('') + '</div>';
         }
 
@@ -1651,36 +1788,28 @@
             var query = document.getElementById('searchIp').value.trim();
             if (!query) { showError('Enter an IP address to search'); return; }
 
-            var rows = document.querySelectorAll('#ipTableBody tr');
-            for (var i = 0; i < rows.length; i++) {
-                var cells = rows[i].querySelectorAll('td');
-                if (cells.length > 0 && cells[0].textContent.trim() === query) {
-                    if (document.getElementById('devicesContent').classList.contains('is-collapsed')) {
-                        toggleSection('devices');
-                    }
-                    rows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    rows[i].style.background = 'var(--accent-glow)';
-                    (function(row) {
-                        setTimeout(function() { row.style.background = ''; }, 2000);
-                    })(rows[i]);
-                    showStatus('Found: ' + query + ' \u2014 ' + cells[3].textContent.trim());
-                    return;
-                }
+            // known device — open edit modal directly without closing settings
+            var dev = _lastDevices && _lastDevices.find(function(d) { return d.ip === query; });
+            if (dev) {
+                openModal(dev.ip, dev.custom_name || '', dev.url || '', dev.icon || 'unknown');
+                return;
             }
 
+            // free IP tile — close settings and scroll to it
             if (document.getElementById('staticContent').classList.contains('is-collapsed')) toggleSection('static');
             if (document.getElementById('dhcpContent').classList.contains('is-collapsed'))   toggleSection('dhcp');
 
             var tiles = document.querySelectorAll('.ip-tile');
             for (var j = 0; j < tiles.length; j++) {
                 if (tiles[j].textContent.trim() === query) {
-                    tiles[j].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    tiles[j].style.outline    = '2px solid var(--accent)';
-                    tiles[j].style.background = 'var(--accent-glow)';
-                    (function(tile) {
-                        setTimeout(function() { tile.style.outline = ''; tile.style.background = ''; }, 2000);
-                    })(tiles[j]);
-                    showStatus('Found: ' + query + ' (free)');
+                    closeSettings();
+                    setTimeout(function() {
+                        tiles[j].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        tiles[j].style.outline    = '2px solid var(--accent)';
+                        tiles[j].style.background = 'var(--accent-glow)';
+                        setTimeout(function() { tiles[j].style.outline = ''; tiles[j].style.background = ''; }, 2500);
+                        showStatus('Found: ' + query + ' (free)');
+                    }, 200);
                     return;
                 }
             }
@@ -1688,6 +1817,17 @@
         }
 
         /* ── NETWORK MAP ───────────────────────────────────── */
+        /* ── SETTINGS MODAL ───────────────────────────────── */
+        function openSettings() {
+            document.getElementById('cfgOverlay').classList.add('is-open');
+        }
+        function closeSettings() {
+            document.getElementById('cfgOverlay').classList.remove('is-open');
+        }
+        function cfgBackdropClick(e) {
+            if (e.target === document.getElementById('cfgOverlay')) closeSettings();
+        }
+
         function openMap() {
             var active = _lastDevices.filter(function(d) { return d.status === 'active'; });
             if (!active.length) { showError('No active devices to map — run a scan first'); return; }
@@ -1809,8 +1949,12 @@
         window.addEventListener('scroll', function() {
             document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 300);
         });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeSettings();
+        });
         loadConfig();
         loadData();
+        setInterval(loadData, 30000);
         fetch(API_BASE + '/api/version').then(r => r.json()).then(d => {
             var el = document.getElementById('appVersion');
             if (el && d.version) el.textContent = 'v' + d.version;
