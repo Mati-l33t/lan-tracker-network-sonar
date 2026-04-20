@@ -218,7 +218,7 @@ def status():
         d["isNew"]      = bool(d.get("is_new", 0))
         d["icon"]       = d.get("icon") or "unknown"
     return {
-        "total":       len(static_ips) + len(dhcp_ips),
+        "total":       len(devs),
         "active":      active,
         "free":        len(free_static) + len(free_dhcp),
         "lastScan":    ls.isoformat() if ls else None,
