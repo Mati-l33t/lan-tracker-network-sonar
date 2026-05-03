@@ -20,6 +20,7 @@
 - **IP address management** — static & DHCP ranges, free IP tracking, custom device names
 - **Device details** — MAC address, hostname, vendor, ping latency, open ports
 - **7-day uptime sparklines** — visual history per device
+- **Proxmox monitoring** — real-time CPU, RAM, swap, disk, and network I/O per node; VM/LXC power control; backup viewer
 - **Dark / Light theme** — persistent across sessions
 - **Network map** — visual topology of discovered devices
 - **One-command install** — single line for Debian/Ubuntu; Proxmox LXC installer included
