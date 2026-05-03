@@ -112,12 +112,15 @@ install_app() {
   python3 -m venv "$INSTALL_DIR/venv"
   "$INSTALL_DIR/venv/bin/pip" install -q --upgrade pip 2>/dev/null || true
   "$INSTALL_DIR/venv/bin/pip" install -q \
-    "fastapi" "uvicorn[standard]" "mysql-connector-python" "pydantic"
+    "fastapi" "uvicorn[standard]" "mysql-connector-python" "pydantic" \
+    "bcrypt" "itsdangerous" "httpx" "apscheduler" "python-multipart"
   msg_ok "Application installed at $INSTALL_DIR"
 }
 
 write_conf() {
   local db_pass="$1"
+  local secret_key
+  secret_key=$(openssl rand -hex 32)
   mkdir -p "$CONF_DIR"
   cat > "$CONF_FILE" <<EOF
 LT_DB_HOST=localhost
@@ -125,6 +128,9 @@ LT_DB_NAME=${DB_NAME}
 LT_DB_USER=${DB_USER}
 LT_DB_PASS=${db_pass}
 LT_PORT=${APP_PORT}
+LT_SECRET_KEY=${secret_key}
+LT_AUTH_ENABLED=true
+LT_ADMIN_HASH=
 EOF
   chmod 600 "$CONF_FILE"
   msg_ok "Config written to $CONF_FILE"
@@ -184,6 +190,11 @@ echo ""
 echo -e "  ${BOLD}Web UI:${NC}  http://${IP}:${APP_PORT}"
 echo -e "  ${BOLD}Config:${NC}  ${CONF_FILE}"
 echo -e "  ${BOLD}Logs:${NC}    journalctl -u ${SERVICE_NAME} -f"
+echo ""
+echo -e "  ${YLW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  ${BOLD}Set an admin password to enable login protection:${NC}"
+echo -e "    python3 ${INSTALL_DIR}/scripts/set-password.py"
+echo -e "  ${YLW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "  Update:     bash <(curl -fsSL ${REPO_URL}/raw/main/update.sh)"
 echo -e "  Uninstall:  bash <(curl -fsSL ${REPO_URL}/raw/main/uninstall.sh)"

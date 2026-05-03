@@ -22,14 +22,27 @@ echo ""
 OLD_VERSION=$(<"${INSTALL_DIR}/VERSION")
 msg_info "Current version: v${OLD_VERSION}"
 
-msg_info "Pulling latest code..."
-git -C "$INSTALL_DIR" pull --quiet
+msg_info "Fetching latest code..."
+git -C "$INSTALL_DIR" fetch --quiet
+git -C "$INSTALL_DIR" reset --hard origin/main --quiet
 msg_ok "Code updated"
 
 msg_info "Updating Python dependencies..."
 "$INSTALL_DIR/venv/bin/pip" install -q --upgrade \
-  "fastapi" "uvicorn[standard]" "mysql-connector-python" "pydantic"
+  "fastapi" "uvicorn[standard]" "mysql-connector-python" "pydantic" \
+  "bcrypt" "itsdangerous" "httpx" "apscheduler" "python-multipart"
 msg_ok "Dependencies updated"
+
+# Ensure auth config keys exist (upgrade from older install)
+if ! grep -q "LT_SECRET_KEY" /etc/lan-tracker/lan-tracker.conf 2>/dev/null; then
+  SECRET_KEY=$(openssl rand -hex 32)
+  echo "LT_SECRET_KEY=${SECRET_KEY}" >> /etc/lan-tracker/lan-tracker.conf
+  msg_ok "Generated LT_SECRET_KEY"
+fi
+grep -q "LT_AUTH_ENABLED" /etc/lan-tracker/lan-tracker.conf 2>/dev/null || \
+  echo "LT_AUTH_ENABLED=true" >> /etc/lan-tracker/lan-tracker.conf
+grep -q "LT_ADMIN_HASH" /etc/lan-tracker/lan-tracker.conf 2>/dev/null || \
+  echo "LT_ADMIN_HASH=" >> /etc/lan-tracker/lan-tracker.conf
 
 msg_info "Restarting service..."
 systemctl restart "$SERVICE_NAME"

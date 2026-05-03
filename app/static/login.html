@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN Tracker — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:      #0d0d0f;
+            --surface: #18181d;
+            --border:  #2c2c38;
+            --text:    #e0e0e8;
+            --muted:   #666676;
+            --accent:  #22d3ee;
+            --danger:  #f43f5e;
+            --danger-bg: rgba(244,63,94,0.1);
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Chakra Petch', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse 70% 55% at 0% 0%, rgba(34,211,238,0.07) 0%, transparent 65%),
+                radial-gradient(ellipse 55% 45% at 100% 100%, rgba(167,139,250,0.07) 0%, transparent 65%);
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px 36px;
+            width: 100%;
+            max-width: 380px;
+            position: relative;
+            z-index: 1;
+        }
+        .logo-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .logo-row img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+        }
+        .logo-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+        .logo-name em {
+            font-style: normal;
+            color: var(--accent);
+        }
+        .logo-sub {
+            font-size: 0.58rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-top: 2px;
+            text-align: center;
+        }
+        .fg {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+        .fg label {
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .fg input {
+            background: #111115;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .fg input:focus {
+            border-color: var(--accent);
+        }
+        .btn-signin {
+            width: 100%;
+            padding: 11px;
+            background: var(--accent);
+            color: #0d0d0f;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn-signin:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn-signin:active { transform: translateY(0); }
+        .error-msg {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo-row">
+            <img src="/static/logo.png" alt="LAN Tracker">
+            <div>
+                <div class="logo-name">LAN <em>TRACKER</em></div>
+                <div class="logo-sub">Network Sonar</div>
+            </div>
+        </div>
+        <div class="error-msg" id="errMsg">Invalid password — try again</div>
+        <form method="post" action="/login">
+            <div class="fg">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" autofocus autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn-signin">Sign In</button>
+        </form>
+    </div>
+    <script>
+        if (new URLSearchParams(location.search).get('error')) {
+            document.getElementById('errMsg').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

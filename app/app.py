@@ -1,17 +1,41 @@
 #!/usr/bin/env python3
-import os, ipaddress
+import os, asyncio, ipaddress, logging, bcrypt
+logger = logging.getLogger(__name__)
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 import mysql.connector, subprocess, re, socket, struct
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pydantic import BaseModel
 
-BASE_DIR    = Path(__file__).parent
+import auth
+import proxmox_routes
+import proxmox_client as pvc
+
+BASE_DIR     = Path(__file__).parent
 VERSION_FILE = BASE_DIR.parent / "VERSION"
 
 app = FastAPI()
+
+# ── Auth middleware ────────────────────────────────────────────────────────────
+_UNPROTECTED = {"/login", "/logout", "/static/login.html", "/static/logo.png", "/static/favicon.ico"}
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/static/") or path in _UNPROTECTED:
+        return await call_next(request)
+    if not auth.is_authenticated(request):
+        if path.startswith("/api/"):
+            return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+        return RedirectResponse("/login", status_code=302)
+    return await call_next(request)
+
+app.include_router(auth.router)
+app.include_router(proxmox_routes.router)
+
+# ── DB ─────────────────────────────────────────────────────────────────────────
 
 def _db_cfg():
     return {
@@ -49,6 +73,8 @@ class DevName(BaseModel):
     ip:str; customName:str; url:str=""; icon:str=""
 class IpOnly(BaseModel):
     ip:str
+class PwChange(BaseModel):
+    currentPassword:str; newPassword:str
 
 def db():
     try: return mysql.connector.connect(**_db_cfg())
@@ -66,6 +92,26 @@ def init():
     cur.execute("ALTER TABLE devices ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'unknown'")
     cur.execute("ALTER TABLE devices ADD COLUMN IF NOT EXISTS is_new TINYINT(1) DEFAULT 0")
     cur.execute("CREATE TABLE IF NOT EXISTS device_history(ip VARCHAR(50),scan_date DATE,PRIMARY KEY(ip,scan_date))")
+    cur.execute("CREATE TABLE IF NOT EXISTS admin_config(`key` VARCHAR(50) PRIMARY KEY, value TEXT NOT NULL)")
+    cur.execute("SELECT value FROM admin_config WHERE `key`='admin_hash'")
+    row = cur.fetchone()
+    if row and row[0]:
+        auth.ADMIN_HASH = row[0]
+    cur.execute("""CREATE TABLE IF NOT EXISTS proxmox_hosts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        label VARCHAR(100) NOT NULL,
+        host VARCHAR(255) NOT NULL,
+        port INT NOT NULL DEFAULT 8006,
+        token_id VARCHAR(255) NOT NULL,
+        token_secret VARCHAR(255) NOT NULL,
+        verify_ssl BOOLEAN NOT NULL DEFAULT FALSE,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        polled_at DATETIME DEFAULT NULL,
+        last_error TEXT DEFAULT NULL
+    )""")
+    cur.execute("ALTER TABLE proxmox_hosts ADD COLUMN IF NOT EXISTS polled_at DATETIME DEFAULT NULL")
+    cur.execute("ALTER TABLE proxmox_hosts ADD COLUMN IF NOT EXISTS last_error TEXT DEFAULT NULL")
     cur.execute("SELECT COUNT(*)FROM config")
     if cur.fetchone()[0] == 0:
         cur.execute("INSERT INTO config VALUES(1,%s,%s,%s,%s,%s)",
@@ -201,11 +247,12 @@ def status():
     for row in cur.fetchall():
         hist_map.setdefault(row["ip"], set()).add(row["d"])
     cur.close(); c.close()
-    static_ips = ips_range(cfg["staticStart"], cfg["staticEnd"])
-    dhcp_ips   = ips_range(cfg["dhcpStart"],   cfg["dhcpEnd"])
-    used       = {d["ip"] for d in devs if d["status"] == "active"}
+    static_ips  = ips_range(cfg["staticStart"], cfg["staticEnd"])
+    dhcp_ips    = ips_range(cfg["dhcpStart"],   cfg["dhcpEnd"])
+    used        = {d["ip"] for d in devs if d["status"] == "active"}
+    static_set  = set(static_ips)
     free_static = [ip for ip in static_ips if ip not in used]
-    free_dhcp   = [ip for ip in dhcp_ips   if ip not in used]
+    free_dhcp   = [ip for ip in dhcp_ips   if ip not in used and ip not in static_set]
     for d in devs:
         raw = d.get("open_ports") or ""
         d["openPorts"] = [int(p) for p in raw.split(",") if p.strip().isdigit()]
@@ -228,7 +275,22 @@ def status():
         "config":      cfg,
     }
 
-# ── Routes ───────────────────────────────────────────────────────────────────
+# ── Proxmox helpers ────────────────────────────────────────────────────────────
+
+proxmox_routes.set_db(db)
+
+async def _get_proxmox_hosts():
+    c = db()
+    if not c: return []
+    cur = c.cursor(dictionary=True)
+    cur.execute("SELECT * FROM proxmox_hosts WHERE enabled=1")
+    rows = cur.fetchall()
+    cur.close(); c.close()
+    return rows
+
+pvc.set_hosts_getter(_get_proxmox_hosts)
+
+# ── Routes ─────────────────────────────────────────────────────────────────────
 
 @app.get("/api/version")
 async def get_version():
@@ -237,13 +299,73 @@ async def get_version():
     except:
         return {"version": "unknown"}
 
+@app.get("/api/check-update")
+async def check_update():
+    import httpx as _httpx
+    try:
+        local = VERSION_FILE.read_text().strip() if VERSION_FILE.exists() else "unknown"
+        async with _httpx.AsyncClient(timeout=6.0) as client:
+            r = await client.get(
+                "https://api.github.com/repos/Mati-l33t/lan-tracker-network-sonar/releases/latest",
+                headers={"Accept": "application/vnd.github+json", "User-Agent": "lan-tracker"}
+            )
+            r.raise_for_status()
+            data = r.json()
+            latest = data.get("tag_name", "").lstrip("v")
+            release_url = data.get("html_url", "")
+        return {"current": local, "latest": latest, "update_available": bool(latest and latest != local), "release_url": release_url}
+    except Exception as e:
+        local = VERSION_FILE.read_text().strip() if VERSION_FILE.exists() else "unknown"
+        return {"current": local, "latest": None, "update_available": False, "error": str(e)}
+
+@app.post("/api/update")
+async def do_update():
+    update_script = BASE_DIR.parent / "update.sh"
+    if not update_script.exists():
+        raise HTTPException(404, "update.sh not found")
+    subprocess.Popen(
+        ["bash", str(update_script)],
+        close_fds=True,
+        start_new_session=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return {"status": "updating", "message": "Update started — service will restart in a moment"}
+
 @app.get("/")
 async def root():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/network/devices")
+
+@app.get("/network/devices")
+@app.get("/network/static")
+@app.get("/network/dhcp")
+async def network_page():
     return HTMLResponse(
-        content=(BASE_DIR / "static" / "index.html").read_text(),
+        content=(BASE_DIR / "static" / "network.html").read_text(),
         headers={"Cache-Control": "no-cache"})
 
-@app.get("/static/{p}")
+@app.get("/proxmox")
+async def proxmox_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/proxmox/overview")
+
+@app.get("/proxmox/overview")
+@app.get("/proxmox/vmscontainers")
+@app.get("/proxmox/storage")
+@app.get("/proxmox/backups")
+async def proxmox_page():
+    return HTMLResponse(
+        content=(BASE_DIR / "static" / "proxmox.html").read_text(),
+        headers={"Cache-Control": "no-cache"})
+
+@app.get("/settings")
+async def settings_page():
+    return HTMLResponse(
+        content=(BASE_DIR / "static" / "settings.html").read_text(),
+        headers={"Cache-Control": "no-cache"})
+
+@app.get("/static/{p:path}")
 async def static_file(p: str):
     return FileResponse(BASE_DIR / "static" / p, headers={"Cache-Control": "no-cache"})
 
@@ -286,6 +408,24 @@ async def do_ping(d: IpOnly):
     ms = ping_host(d.ip)
     return {"ip": d.ip, "ms": ms, "alive": ms is not None}
 
+@app.post("/api/change-password")
+async def change_password(body: PwChange):
+    if not auth.verify_password(body.currentPassword):
+        raise HTTPException(400, "Current password is incorrect")
+    if len(body.newPassword) < 8:
+        raise HTTPException(400, "New password must be at least 8 characters")
+    new_hash = bcrypt.hashpw(body.newPassword.encode(), bcrypt.gensalt()).decode()
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute(
+        "INSERT INTO admin_config(`key`, value) VALUES('admin_hash', %s) "
+        "ON DUPLICATE KEY UPDATE value=%s",
+        (new_hash, new_hash))
+    c.commit(); cur.close(); c.close()
+    auth.ADMIN_HASH = new_hash
+    return {"status": "ok"}
+
 @app.post("/api/device/ack")
 async def ack_device(d: IpOnly):
     c = db()
@@ -295,8 +435,23 @@ async def ack_device(d: IpOnly):
     c.commit(); cur.close(); c.close()
     return {"status": "ok"}
 
+async def _daily_scan_loop():
+    """Run a network scan once per day to populate 7-day activity history."""
+    await asyncio.sleep(60)  # wait 1 min after startup before first auto-scan
+    while True:
+        try:
+            cfg  = get_cfg()
+            devs = scan(cfg["subnet"])
+            update_devs(devs, cfg)
+        except Exception as e:
+            logger.error(f"Auto-scan failed: {e}")
+        await asyncio.sleep(86400)  # 24 hours
+
 @app.on_event("startup")
-def on_startup(): init()
+async def on_startup():
+    init()
+    asyncio.create_task(pvc.start_polling_loop(interval=30))
+    asyncio.create_task(_daily_scan_loop())
 
 if __name__ == "__main__":
     import uvicorn

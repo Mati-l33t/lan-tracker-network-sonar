@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN Tracker — Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root, [data-theme="dark"] {
+            --bg: #0d0d0f; --bg2: #111115; --surface: #18181d; --surface2: #1f1f26;
+            --border: #2c2c38; --text: #e0e0e8; --text-muted: #666676; --text-dim: #38383f;
+            --accent: #22d3ee; --accent-glow: rgba(34,211,238,0.14); --accent-strong: rgba(34,211,238,0.3);
+            --accent2: #f59e0b; --accent2-glow: rgba(245,158,11,0.22);
+            --active: #34d399; --active-bg: rgba(52,211,153,0.09);
+            --inactive: #fb923c; --inactive-bg: rgba(251,146,60,0.09);
+            --danger: #f43f5e; --danger-bg: rgba(244,63,94,0.1);
+            --static-c: #a78bfa; --dhcp-c: #f472b6;
+            --overlay: rgba(0,0,0,0.85); --shadow: 0 8px 40px rgba(0,0,0,0.7);
+        }
+        [data-theme="light"] {
+            --bg: #f4ede0; --bg2: #ece4d4; --surface: #fdf8f0; --surface2: #f5ede0;
+            --border: #c8b89a; --text: #1a2a38; --text-muted: #7a6a54; --text-dim: #b0a088;
+            --accent: #1e3d6b; --accent-glow: rgba(30,61,107,0.14); --accent-strong: rgba(30,61,107,0.28);
+            --accent2: #b84010; --accent2-glow: rgba(184,64,16,0.2);
+            --active: #1a6b45; --active-bg: rgba(26,107,69,0.1);
+            --inactive: #a05c14; --inactive-bg: rgba(160,92,20,0.1);
+            --danger: #be1d3c; --danger-bg: rgba(190,29,60,0.1);
+            --static-c: #4f38c2; --dhcp-c: #9d174d;
+            --overlay: rgba(10,5,0,0.7); --shadow: 0 8px 40px rgba(0,0,0,0.18);
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        @keyframes fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slide-down { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+        html { scroll-behavior:smooth; }
+        body { background:var(--bg); color:var(--text); font-family:'Chakra Petch',sans-serif; min-height:100vh; overflow-x:hidden; transition:background 0.4s,color 0.4s; }
+        body::before {
+            content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+            background: radial-gradient(ellipse 70% 55% at 0% 0%, rgba(34,211,238,0.07) 0%, transparent 65%),
+                        radial-gradient(ellipse 55% 45% at 100% 100%, rgba(167,139,250,0.07) 0%, transparent 65%),
+                        radial-gradient(ellipse 40% 35% at 75% 10%, rgba(245,158,11,0.04) 0%, transparent 60%);
+        }
+        [data-theme="light"] body::before {
+            background: radial-gradient(ellipse 70% 55% at 0% 0%, rgba(30,61,107,0.06) 0%, transparent 65%),
+                        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(184,64,16,0.05) 0%, transparent 65%);
+        }
+        body::after { display:none; }
+        .wrap { padding:28px 28px 0; position:relative; z-index:1; max-width:1100px; margin:0 auto; }
+        .s1 { animation:fade-up 0.55s ease 0.00s both; }
+        .s2 { animation:fade-up 0.55s ease 0.07s both; }
+        .s3 { animation:fade-up 0.55s ease 0.14s both; }
+        .s4 { animation:fade-up 0.55s ease 0.21s both; }
+        .s5 { animation:fade-up 0.55s ease 0.28s both; }
+        .s6 { animation:fade-up 0.55s ease 0.35s both; }
+        header { display:flex; align-items:center; justify-content:space-between; padding-bottom:18px; margin-bottom:0; position:relative; }
+        header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:linear-gradient(to right,transparent,var(--accent) 30%,var(--accent) 70%,transparent); opacity:0.5; }
+        .logo { display:flex; align-items:center; gap:14px; }
+        .logo-text-block { line-height:1; }
+        .logo-name { font-size:1.4rem; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--text); }
+        .logo-name em { font-style:normal; color:var(--accent); transition:color 0.4s; }
+        .logo-sub { font-size:0.58rem; letter-spacing:0.35em; text-transform:uppercase; color:var(--text-muted); margin-top:4px; font-weight:400; }
+        .header-btns { display:flex; align-items:center; gap:8px; }
+        .hdr-icon-btn { width:36px; height:36px; background:none; border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-muted); flex-shrink:0; transition:color 0.2s,background 0.2s; }
+        .hdr-icon-btn svg { width:18px; height:18px; transition:transform 0.3s; }
+        .hdr-icon-btn:hover { color:var(--accent); background:var(--surface2); }
+        .hdr-icon-btn:hover svg { transform:rotate(30deg); }
+        .hdr-icon-btn.active { color:var(--accent); background:var(--accent-glow); }
+
+        /* ── BACK LINK ─── */
+        .back-link { display:inline-flex; align-items:center; gap:7px; padding:8px 0; color:var(--text-muted); text-decoration:none; font-size:0.68rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; transition:color 0.2s; margin-bottom:10px; }
+        .back-link svg { width:14px; height:14px; flex-shrink:0; }
+        .back-link:hover { color:var(--accent); }
+
+        /* ── SETTINGS LAYOUT ─── */
+        .settings-layout { display:flex; gap:28px; align-items:flex-start; }
+        .settings-sidebar { flex:0 0 148px; }
+        .settings-content { flex:1; min-width:0; }
+
+        /* ── SETTINGS SUB-NAV ─── */
+        .settings-nav { display:flex; flex-direction:column; gap:2px; padding-left:0; margin-bottom:0; }
+        .setnav-btn { padding:9px 12px; color:var(--text-muted); background:none; border:none; border-radius:7px; font-family:'Chakra Petch',sans-serif; font-size:0.68rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; cursor:pointer; position:relative; transition:color 0.2s,background 0.2s; display:flex; align-items:center; gap:7px; width:100%; text-align:left; }
+        .setnav-btn svg { width:13px; height:13px; flex-shrink:0; opacity:0.7; }
+        .setnav-btn:hover { color:var(--text); background:var(--surface2); }
+        .setnav-btn.active { color:var(--accent); background:var(--accent-glow); }
+        .setnav-btn.active svg { opacity:1; }
+        .setnav-btn.active::after { content:''; position:absolute; left:0; top:4px; bottom:4px; width:2px; background:var(--accent); border-radius:0 2px 2px 0; opacity:0.8; }
+        .settings-sec { display:none; }
+        .settings-sec.active { display:block; }
+
+        /* ── NOTIFICATIONS ─── */
+        #statusContainer { position:fixed; bottom:24px; right:24px; z-index:3000; display:flex; flex-direction:column; align-items:flex-end; gap:8px; max-width:calc(100vw - 48px); width:fit-content; }
+        .notif { padding:11px 16px; border-radius:8px; font-size:0.75rem; font-weight:600; letter-spacing:0.06em; border:1px solid; white-space:nowrap; width:fit-content; animation:slide-down 0.3s ease; }
+        .notif-ok  { background:var(--active-bg);  color:var(--active);  border-color:var(--active); }
+        .notif-err { background:var(--danger-bg);  color:var(--danger);  border-color:var(--danger); }
+
+        /* ── PANEL ─── */
+        .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:20px; transition:background 0.4s,border-color 0.4s; }
+        .panel-label { font-size:0.62rem; font-weight:600; letter-spacing:0.28em; text-transform:uppercase; color:var(--text-muted); margin-bottom:18px; display:flex; align-items:center; gap:8px; }
+        .panel-label svg { color:var(--accent); width:15px; height:15px; flex-shrink:0; }
+
+        /* ── BUTTONS ─── */
+        .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'Chakra Petch',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.2s ease; white-space:nowrap; }
+        .btn:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
+        .btn:active { transform:translateY(0) scale(0.98); }
+        .btn-save { background:var(--active-bg); border-color:var(--active); color:var(--active); }
+        .btn-save:hover { background:var(--active); color:var(--bg); border-color:var(--active); }
+        .btn-danger { background:var(--danger-bg); border-color:var(--danger); color:var(--danger); }
+        .btn-danger:hover { background:var(--danger); color:var(--bg); border-color:var(--danger); }
+        .btn-row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin-top:14px; }
+
+        /* ── FORM FIELDS ─── */
+        .cfg-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:12px; margin-bottom:14px; }
+        .fg { display:flex; flex-direction:column; gap:5px; }
+        .fg label { font-size:0.6rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); display:flex; align-items:center; gap:5px; }
+        .fg input, .fg select { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:9px 12px; color:var(--text); font-family:'Courier Prime',monospace; font-size:0.875rem; line-height:1.4; width:100%; transition:border-color 0.2s,box-shadow 0.2s,background 0.4s; }
+        .fg input:focus, .fg select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+        .fg input::placeholder { color:var(--text-dim); }
+        .fg input[type="password"] { font-family:'Courier Prime',monospace; }
+        .hint { font-size:0.62rem; color:var(--text-muted); margin-top:4px; letter-spacing:0.05em; }
+        .search-row { display:flex; gap:7px; }
+        .search-row input { flex:1; min-width:0; }
+        .search-row .btn { padding:9px 11px; }
+
+        /* ── FIELD INFO TOOLTIP ─── */
+        .field-info { display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; border-radius:50%; border:1px solid var(--text-dim); color:var(--text-dim); font-size:0.52rem; font-weight:700; cursor:help; position:relative; flex-shrink:0; font-family:sans-serif; letter-spacing:0; text-transform:none; line-height:1; transition:border-color 0.15s,color 0.15s; }
+        .field-info:hover { border-color:var(--accent); color:var(--accent); }
+        .field-info .tip { display:none; position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--accent); border-radius:8px; padding:10px 13px; width:230px; font-size:0.7rem; color:var(--text); z-index:300; line-height:1.55; letter-spacing:0.02em; text-transform:none; font-weight:400; pointer-events:none; box-shadow:0 6px 24px rgba(0,0,0,0.35); white-space:normal; font-family:inherit; }
+        .field-info:hover .tip { display:block; }
+        .field-info .tip::before { content:''; position:absolute; bottom:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-bottom-color:var(--accent); }
+
+        /* ── THEME CARD ─── */
+        .theme-card { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+        .theme-card-info { font-size:0.82rem; color:var(--text-muted); }
+        .theme-card-info strong { color:var(--text); display:block; font-size:0.88rem; margin-bottom:4px; }
+        .theme-toggle-big { display:flex; align-items:center; gap:10px; padding:10px 18px; border-radius:10px; border:1px solid var(--border); background:var(--surface2); cursor:pointer; transition:all 0.2s; font-family:'Chakra Petch',sans-serif; font-size:0.75rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); }
+        .theme-toggle-big:hover { border-color:var(--accent); color:var(--accent); }
+        .theme-toggle-big svg { width:18px; height:18px; }
+        .theme-toggle-big .icon-moon { display:block; }
+        .theme-toggle-big .icon-sun  { display:none; }
+        [data-theme="light"] .theme-toggle-big .icon-moon { display:none; }
+        [data-theme="light"] .theme-toggle-big .icon-sun  { display:block; }
+        .theme-name { font-family:'Courier Prime',monospace; font-size:0.82rem; color:var(--accent); font-weight:700; letter-spacing:0.05em; }
+
+        /* ── PROXMOX SETTINGS ─── */
+        .pve-form-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:16px; }
+        .pve-form-card h4 { font-size:0.72rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        .pve-form-card h4 svg { color:var(--accent); width:14px; height:14px; flex-shrink:0; }
+        .pve-form-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:14px; }
+        .pve-fg { display:flex; flex-direction:column; gap:5px; }
+        .pve-fg label { font-size:0.6rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); }
+        .pve-fg input[type="text"], .pve-fg input[type="password"], .pve-fg input[type="number"] {
+            background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:9px 12px; color:var(--text);
+            font-family:'Courier Prime',monospace; font-size:0.875rem; width:100%;
+            transition:border-color 0.2s,box-shadow 0.2s,background 0.4s;
+        }
+        .pve-fg input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+        .pve-fg input::placeholder { color:var(--text-dim); }
+        .pve-form-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .pve-check-lbl { display:flex; align-items:center; gap:7px; font-size:0.7rem; color:var(--text-muted); cursor:pointer; user-select:none; }
+        .pve-check-lbl input[type="checkbox"] { accent-color:var(--accent); width:14px; height:14px; cursor:pointer; }
+        .pve-tbl-wrap { overflow-x:auto; }
+        .pve-tbl { width:100%; border-collapse:collapse; font-size:0.75rem; }
+        .pve-tbl th { padding:8px 12px; text-align:left; font-size:0.6rem; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; }
+        .pve-tbl td { padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text); font-family:'Courier Prime',monospace; vertical-align:middle; }
+        .pve-tbl tr:last-child td { border-bottom:none; }
+        .pve-tbl tr:hover td { background:var(--surface2); }
+        .pve-tbl .pve-empty { text-align:center; color:var(--text-muted); font-family:'Chakra Petch',sans-serif; font-size:0.72rem; padding:24px; }
+        .pve-status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+        .pve-status-ok  { background:var(--active); }
+        .pve-status-err { background:var(--danger); }
+        .pve-status-unk { background:var(--text-muted); }
+        .hidden { display:none !important; }
+
+        /* ── UPDATE ─── */
+        .upd-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+        .upd-row-info { font-size:0.82rem; color:var(--text-muted); }
+        .upd-row-info strong { color:var(--text); display:block; font-size:0.88rem; margin-bottom:6px; }
+        .upd-ver-badge { font-family:'Courier Prime',monospace; font-size:0.82rem; color:var(--accent); font-weight:700; }
+        .upd-meta { margin-top:6px; display:flex; flex-direction:column; gap:4px; }
+        .upd-meta-line { font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:7px; }
+        .upd-meta-line .upd-ver-badge { font-size:0.75rem; }
+        .upd-avail-badge { font-size:0.67rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent2); background:var(--accent2-glow); border:1px solid var(--accent2); border-radius:4px; padding:1px 6px; }
+        .upd-ok-badge { font-size:0.67rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--active); background:var(--active-bg); border:1px solid var(--active); border-radius:4px; padding:1px 6px; }
+        .upd-btns { display:flex; gap:8px; align-items:center; flex-wrap:wrap; flex-shrink:0; }
+        .upd-modal-body { font-size:0.82rem; color:var(--text-muted); line-height:1.6; }
+        .upd-ver-row { display:flex; align-items:center; gap:10px; margin:14px 0; font-family:'Courier Prime',monospace; font-size:0.9rem; flex-wrap:wrap; }
+        .upd-ver-row .arrow { color:var(--accent); font-size:1.1rem; }
+        .upd-ver-old { color:var(--text-muted); text-decoration:line-through; }
+        .upd-ver-new { color:var(--active); font-weight:700; }
+        .upd-rel-link { font-size:0.72rem; color:var(--accent); text-decoration:none; margin-left:auto; white-space:nowrap; }
+        .upd-rel-link:hover { text-decoration:underline; }
+        #updateProgress { display:none; margin-top:14px; font-size:0.78rem; color:var(--accent); text-align:center; }
+        /* ── COMMAND BLOCK ─── */
+        .cmd-block { display:flex; align-items:center; gap:10px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:11px 14px; overflow:hidden; }
+        .cmd-block code { flex:1; min-width:0; font-family:'Courier Prime',monospace; font-size:0.8rem; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .cmd-copy-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); padding:3px; flex-shrink:0; border-radius:4px; transition:color 0.2s,background 0.2s; display:flex; align-items:center; justify-content:center; }
+        .cmd-copy-btn:hover { color:var(--accent); background:var(--surface2); }
+        .cmd-copy-btn svg { width:14px; height:14px; display:block; }
+        .setup-hint { font-size:0.68rem; color:var(--text-muted); margin-top:9px; line-height:1.55; }
+        .modal-ov { display:none; position:fixed; inset:0; background:var(--overlay); z-index:2000; align-items:center; justify-content:center; }
+        .modal-ov.is-open { display:flex; }
+        .modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; width:90%; max-width:380px; box-shadow:var(--shadow); }
+        .modal-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+        .modal-title { font-size:0.88rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text); }
+        .modal-x { background:none; border:none; color:var(--text-muted); font-size:1.3rem; cursor:pointer; line-height:1; padding:0 2px; }
+        .modal-x:hover { color:var(--text); }
+        .modal-ft { display:flex; justify-content:flex-end; gap:9px; margin-top:20px; }
+        /* ── FOOTER ─── */
+        footer { margin-top:48px; padding:20px 0 28px; position:relative; text-align:center; font-size:0.62rem; color:var(--text-muted); letter-spacing:0.22em; text-transform:uppercase; }
+        footer::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(to right,transparent,var(--accent) 30%,var(--accent) 70%,transparent); opacity:0.5; }
+        footer a { color:var(--accent); text-decoration:none; }
+        footer a:hover { text-decoration:underline; }
+
+        @media (max-width:600px) {
+            .wrap { padding:16px 16px 0; }
+            header { flex-direction:column; align-items:flex-start; gap:12px; }
+            .header-btns { align-self:flex-end; }
+            .cfg-grid, .pve-form-grid { grid-template-columns:1fr !important; }
+            .pve-form-card { padding:16px; }
+            .pve-form-row { flex-direction:column; align-items:stretch; }
+            .pve-form-row > div[style] { margin-left:0 !important; width:100%; }
+            .pve-form-row .btn { flex:1; justify-content:center; }
+            #statusContainer { bottom:16px; right:16px; max-width:calc(100vw - 32px); }
+            .theme-card { flex-direction:column; align-items:flex-start; }
+            .settings-layout { flex-direction:column; gap:16px; align-items:stretch; }
+            .settings-sidebar { flex:none; width:100%; }
+            .settings-nav { flex-direction:row; flex-wrap:wrap; gap:4px; }
+            .setnav-btn { width:auto; }
+            .setnav-btn.active::after { left:4px; right:4px; top:auto; bottom:0; width:auto; height:2px; border-radius:2px 2px 0 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header class="s1">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
+                <div class="logo-text-block">
+                    <div class="logo-name">LAN <em>TRACKER</em></div>
+                    <div class="logo-sub">Network Sonar</div>
+                </div>
+            </div>
+            <div class="header-btns">
+                <a href="/settings" class="hdr-icon-btn active" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </a>
+                <button class="hdr-icon-btn" onclick="document.getElementById('logoutForm').submit()" title="Log out">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+                <form id="logoutForm" action="/logout" method="post" style="display:none"></form>
+            </div>
+        </header>
+
+        <a href="/" class="back-link s2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Home
+        </a>
+
+        <div id="statusContainer"></div>
+
+        <div class="settings-layout">
+        <aside class="settings-sidebar s3">
+            <nav class="settings-nav">
+                <button class="setnav-btn active" data-sec="system" onclick="switchSection('system')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    System
+                </button>
+                <button class="setnav-btn" data-sec="network" onclick="switchSection('network')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    Network
+                </button>
+                <button class="setnav-btn" data-sec="proxmox" onclick="switchSection('proxmox')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    Proxmox
+                </button>
+            </nav>
+        </aside>
+        <div class="settings-content">
+
+        <!-- ══ NETWORK SECTION ══ -->
+        <div class="settings-sec" id="sec-network">
+            <div class="panel">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    Network Configuration
+                </div>
+                <div class="cfg-grid">
+                    <div class="fg">
+                        <label for="subnet">Subnet <span class="field-info">?<span class="tip">Your network's address range in CIDR notation. 192.168.0.0/24 covers all IPs from .1 to .254. Use Auto-detect if unsure.</span></span></label>
+                        <input type="text" id="subnet" placeholder="e.g. 192.168.0.0/24">
+                    </div>
+                    <div class="fg">
+                        <label for="staticStart">Static Range Start <span class="field-info">?<span class="tip">First IP you manually assign to devices (servers, NAS, printers). Most routers don't set this — just pick a low range like .2 that won't conflict with DHCP.</span></span></label>
+                        <input type="text" id="staticStart" placeholder="e.g. 192.168.0.2">
+                    </div>
+                    <div class="fg">
+                        <label for="staticEnd">Static Range End <span class="field-info">?<span class="tip">Last IP in your static range. Keep it well below your DHCP start so there's no overlap. e.g. if DHCP starts at .100, end static at .99.</span></span></label>
+                        <input type="text" id="staticEnd" placeholder="e.g. 192.168.0.99">
+                    </div>
+                    <div class="fg">
+                        <label for="dhcpStart">DHCP Range Start <span class="field-info">?<span class="tip">First IP your router auto-assigns to devices. Check your router's DHCP settings — commonly .100 or .50.</span></span></label>
+                        <input type="text" id="dhcpStart" placeholder="e.g. 192.168.0.100">
+                    </div>
+                    <div class="fg">
+                        <label for="dhcpEnd">DHCP Range End <span class="field-info">?<span class="tip">Last IP in your router's DHCP pool. Devices that join your network get assigned IPs up to this address. Commonly .200 or .254.</span></span></label>
+                        <input type="text" id="dhcpEnd" placeholder="e.g. 192.168.0.200">
+                    </div>
+                    <div class="fg">
+                        <label for="searchIp">Find IP <span class="field-info">?<span class="tip">Looks up a specific IP address and shows its status — whether it's an active device, inactive, or a free IP in a configured range.</span></span></label>
+                        <div class="search-row">
+                            <input type="text" id="searchIp" placeholder="192.168.0.42" onkeyup="searchIpEnter(event)">
+                            <button class="btn" onclick="searchIp()">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="fg">
+                        <label for="pingInput">Ping IP <span class="field-info">?<span class="tip">Test connectivity to any IP on your network. Useful to check if a device is reachable without running a full scan.</span></span></label>
+                        <div class="search-row">
+                            <input type="text" id="pingInput" placeholder="192.168.0.1" onkeydown="if(event.key==='Enter')doPing()">
+                            <button class="btn" onclick="doPing()">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+                            </button>
+                        </div>
+                        <span id="pingResult" style="font-family:'Courier Prime',monospace;font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block"></span>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-save" onclick="saveConfig()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Save Config
+                    </button>
+                    <button class="btn" onclick="autoDetectNetwork()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+                        Auto-detect
+                    </button>
+                    <button class="btn" onclick="resetConfig()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ PROXMOX SECTION ══ -->
+        <div class="settings-sec" id="sec-proxmox">
+            <!-- Quick token setup -->
+            <div class="panel s4">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    Quick Token Setup
+                </div>
+                <p style="font-size:0.8rem;color:var(--text-muted);line-height:1.6;margin-bottom:14px">Run this one-liner in your <strong style="color:var(--text)">Proxmox host shell</strong> (not inside the LXC). It creates a read-only monitoring user and API token, then prints the credentials to paste below.</p>
+                <div class="cmd-block">
+                    <code id="pveSetupCmd">bash &lt;(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main/proxmox/setup-token.sh)</code>
+                    <button class="cmd-copy-btn" onclick="copySetupCmd()" title="Copy command">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                </div>
+                <p class="setup-hint">Creates <code style="font-family:'Courier Prime',monospace;color:var(--accent)">monitoring@pam</code> user with <code style="font-family:'Courier Prime',monospace;color:var(--accent)">LanTrackerRole</code> — read-only + VM power management. Token ID will be <code style="font-family:'Courier Prime',monospace;color:var(--accent)">monitoring@pam!lan-tracker</code>. Safe to re-run.</p>
+            </div>
+
+            <div class="pve-form-card s4">
+                <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add Proxmox Host
+                </h4>
+                <form id="pve-add-host-form" onsubmit="event.preventDefault();pveAddHost()">
+                    <div class="pve-form-grid">
+                        <div class="pve-fg"><label>Node Name</label><input type="text" name="label" placeholder="e.g. pve" required></div>
+                        <div class="pve-fg"><label>Host / IP</label><input type="text" name="host" placeholder="e.g. 192.168.1.100" required></div>
+                        <div class="pve-fg"><label>Port</label><input type="number" name="port" placeholder="e.g. 8006"></div>
+                        <div class="pve-fg"><label>Token ID</label><input type="text" name="token_id" placeholder="e.g. user@pam!token-name" required></div>
+                        <div class="pve-fg" style="grid-column:1/-1"><label>Token Secret</label><input type="password" name="token_secret" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required></div>
+                    </div>
+                    <div class="pve-form-row">
+                        <label class="pve-check-lbl"><input type="checkbox" name="verify_ssl"> Verify SSL cert</label>
+                        <div style="margin-left:auto;display:flex;gap:8px;">
+                            <button type="button" class="btn" onclick="pveTestNew()">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                                Test Connection
+                            </button>
+                            <button type="submit" class="btn btn-save">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Host
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="pve-form-card s5">
+                <h4>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    Configured Hosts
+                </h4>
+                <div class="pve-tbl-wrap">
+                    <table class="pve-tbl">
+                        <thead><tr><th>Label</th><th>Host</th><th>Port</th><th>Token ID</th><th>SSL</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="pve-hosts-tbody"><tr><td colspan="7" class="pve-empty">No hosts configured</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ SYSTEM SECTION ══ -->
+        <div class="settings-sec active s4" id="sec-system">
+            <!-- APPEARANCE -->
+            <div class="panel s4">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    Appearance
+                </div>
+                <div class="theme-card">
+                    <div class="theme-card-info">
+                        <strong>Interface Theme</strong>
+                        Current theme: <span class="theme-name" id="themeName">Dark</span>
+                    </div>
+                    <button class="theme-toggle-big" onclick="toggleTheme()" id="themeToggleBtn">
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                        <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        <span id="themeToggleLabel">Switch to Light</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SOFTWARE UPDATE -->
+            <div class="panel s4">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                    Software Update
+                </div>
+                <div class="upd-row">
+                    <div class="upd-row-info">
+                        <strong>LAN Tracker</strong>
+                        <div style="font-size:0.78rem;color:var(--text-muted)">Installed: <span class="upd-ver-badge" id="sysCurrentVer">—</span></div>
+                        <div class="upd-meta">
+                            <div class="upd-meta-line hidden" id="sysUpdateAvailRow">
+                                <span class="upd-avail-badge">Update Available</span>
+                                <span>→ <span class="upd-ver-badge" id="sysLatestVer" style="color:var(--accent2)">—</span></span>
+                                <a id="sysReleaseLink" href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" style="color:var(--accent);font-size:0.7rem;text-decoration:none;" title="View release notes">↗ changelog</a>
+                            </div>
+                            <div class="upd-meta-line hidden" id="sysUpToDateRow">
+                                <span class="upd-ok-badge">Up to date</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="upd-btns">
+                        <button class="btn" id="checkUpdateBtn" onclick="checkUpdate()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                            Check Now
+                        </button>
+                        <button class="btn btn-save hidden" id="updateNowBtn" onclick="openUpdateModal()">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                            Update Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASSWORD MANAGEMENT -->
+            <div class="panel s5">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    Password Management
+                </div>
+                <div class="cfg-grid" style="max-width:560px;">
+                    <div class="fg">
+                        <label for="currentPw">Current Password</label>
+                        <input type="password" id="currentPw" placeholder="Enter current password" autocomplete="current-password">
+                    </div>
+                    <div class="fg">
+                        <label for="newPw">New Password</label>
+                        <input type="password" id="newPw" placeholder="At least 8 characters" autocomplete="new-password">
+                    </div>
+                    <div class="fg">
+                        <label for="confirmPw">Confirm New Password</label>
+                        <input type="password" id="confirmPw" placeholder="Repeat new password" autocomplete="new-password" onkeydown="if(event.key==='Enter')changePassword()">
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-save" onclick="changePassword()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                        Change Password
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        </div><!-- /.settings-content -->
+        </div><!-- /.settings-layout -->
+
+    <!-- UPDATE MODAL -->
+    <div class="modal-ov" id="updateOverlay" onclick="if(event.target===this)closeUpdateModal()">
+        <div class="modal">
+            <div class="modal-hd">
+                <span class="modal-title">Update Available</span>
+                <button class="modal-x" onclick="closeUpdateModal()">&times;</button>
+            </div>
+            <div class="upd-modal-body">
+                A new version of LAN Tracker is available.
+                <div class="upd-ver-row">
+                    <span class="upd-ver-old" id="updCurrentVer">v?</span>
+                    <span class="arrow">→</span>
+                    <span class="upd-ver-new" id="updLatestVer">v?</span>
+                    <a id="updReleaseLink" href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" class="upd-rel-link">↗ release notes</a>
+                </div>
+                The update pulls the latest code from GitHub, updates dependencies, and restarts the service. Your device data, Proxmox hosts, and settings are stored in the database and are not affected.
+                <div id="updateProgress">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:fade-up 1s infinite;vertical-align:middle"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+                    Updating… page will reload shortly
+                </div>
+            </div>
+            <div class="modal-ft" id="updateBtns">
+                <button class="btn" onclick="closeUpdateModal()">Cancel</button>
+                <button class="btn btn-save" onclick="triggerUpdate()">Update Now</button>
+            </div>
+        </div>
+    </div>
+
+        <footer class="s6">
+            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion" style="font-variant-numeric:tabular-nums"></a></p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        (function() {
+            var saved = localStorage.getItem('lant-theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+        })();
+
+        function updateThemeUI() {
+            var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+            var nameEl  = document.getElementById('themeName');
+            var labelEl = document.getElementById('themeToggleLabel');
+            if (nameEl)  nameEl.textContent  = isDark ? 'Dark'  : 'Light';
+            if (labelEl) labelEl.textContent = isDark ? 'Switch to Light' : 'Switch to Dark';
+        }
+
+        function toggleTheme() {
+            var html = document.documentElement;
+            var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('lant-theme', next);
+            updateThemeUI();
+        }
+
+        updateThemeUI();
+
+        /* ── SECTION SWITCHING ── */
+        function switchSection(sec) {
+            document.querySelectorAll('.setnav-btn').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.sec === sec);
+            });
+            document.querySelectorAll('.settings-sec').forEach(function(s) {
+                s.classList.toggle('active', s.id === 'sec-' + sec);
+            });
+            if (sec === 'proxmox') pveLoadHosts();
+            history.replaceState(null, '', '/settings#' + sec);
+        }
+
+        (function() {
+            var hash = location.hash.replace('#','');
+            if (hash === 'proxmox' || hash === 'system' || hash === 'network') switchSection(hash);
+        })();
+
+        /* ── NOTIFICATIONS ── */
+        function esc(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+        function showStatus(msg) {
+            document.getElementById('statusContainer').innerHTML = '<div class="notif notif-ok">' + esc(msg) + '</div>';
+            setTimeout(function() { document.getElementById('statusContainer').innerHTML = ''; }, 3500);
+        }
+        function showError(msg) {
+            document.getElementById('statusContainer').innerHTML = '<div class="notif notif-err">' + esc(msg) + '</div>';
+            setTimeout(function() { document.getElementById('statusContainer').innerHTML = ''; }, 5000);
+        }
+
+        /* ── NETWORK CONFIG ── */
+        async function loadConfig() {
+            try {
+                var res = await fetch(API_BASE + '/api/config');
+                var cfg = await res.json();
+                document.getElementById('subnet').value      = cfg.subnet      || '';
+                document.getElementById('staticStart').value = cfg.staticStart || '';
+                document.getElementById('staticEnd').value   = cfg.staticEnd   || '';
+                document.getElementById('dhcpStart').value   = cfg.dhcpStart   || '';
+                document.getElementById('dhcpEnd').value     = cfg.dhcpEnd     || '';
+            } catch(e) { console.error(e); }
+        }
+
+        function isValidIp(ip) {
+            return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) &&
+                ip.split('.').every(function(n) { return parseInt(n, 10) <= 255; });
+        }
+
+        function ip2int(ip) {
+            return ip.split('.').reduce(function(a, o) { return (a << 8) + parseInt(o, 10); }, 0) >>> 0;
+        }
+
+        async function saveConfig() {
+            var subnet      = document.getElementById('subnet').value.trim();
+            var staticStart = document.getElementById('staticStart').value.trim();
+            var staticEnd   = document.getElementById('staticEnd').value.trim();
+            var dhcpStart   = document.getElementById('dhcpStart').value.trim();
+            var dhcpEnd     = document.getElementById('dhcpEnd').value.trim();
+
+            var ipFields = [
+                [staticStart, 'Static Range Start'],
+                [staticEnd,   'Static Range End'],
+                [dhcpStart,   'DHCP Range Start'],
+                [dhcpEnd,     'DHCP Range End'],
+            ];
+            for (var i = 0; i < ipFields.length; i++) {
+                var val = ipFields[i][0], label = ipFields[i][1];
+                if (val && !isValidIp(val)) {
+                    showError(label + ': "' + val + '" is not a valid IP address');
+                    return;
+                }
+            }
+            if (staticStart && staticEnd && ip2int(staticStart) > ip2int(staticEnd)) {
+                showError('Static Range Start must be less than or equal to Static Range End');
+                return;
+            }
+            if (dhcpStart && dhcpEnd && ip2int(dhcpStart) > ip2int(dhcpEnd)) {
+                showError('DHCP Range Start must be less than or equal to DHCP Range End');
+                return;
+            }
+            if (staticEnd && dhcpStart && ip2int(staticEnd) >= ip2int(dhcpStart)) {
+                showError('Static Range End (' + staticEnd + ') must be lower than DHCP Range Start (' + dhcpStart + ') — ranges must not overlap');
+                return;
+            }
+
+            var cfg = { subnet, staticStart, staticEnd, dhcpStart, dhcpEnd };
+            try {
+                var res = await fetch(API_BASE + '/api/config', {
+                    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfg)
+                });
+                if (!res.ok) throw new Error('Failed');
+                showStatus('Configuration saved');
+            } catch(e) { showError('Save failed: ' + e.message); }
+        }
+
+        async function autoDetectNetwork() {
+            try {
+                showStatus('Detecting network…');
+                var res = await fetch(API_BASE + '/api/detect-network');
+                var d   = await res.json();
+                document.getElementById('subnet').value = d.subnet || '';
+                showStatus('Network detected: ' + d.subnet + ' — click Save Config to apply');
+            } catch(e) { showError('Auto-detect failed: ' + e.message); }
+        }
+
+        function resetConfig() {
+            if (!confirm('Clear all network config fields? You will need to re-enter and save your network ranges.')) return;
+            ['subnet','staticStart','staticEnd','dhcpStart','dhcpEnd'].forEach(function(id) {
+                document.getElementById(id).value = '';
+            });
+            showStatus('Fields cleared — enter new values and save');
+        }
+
+        function searchIpEnter(e) { if (e.key === 'Enter') searchIp(); }
+
+        async function searchIp() {
+            var query = document.getElementById('searchIp').value.trim();
+            if (!query) { showError('Enter an IP address'); return; }
+            try {
+                var res  = await fetch(API_BASE + '/api/status');
+                var data = await res.json();
+                var dev  = (data.devices || []).find(function(d) { return d.ip === query; });
+                if (dev) {
+                    var name = dev.custom_name || dev.hostname || 'unknown';
+                    showStatus(query + ' — ' + name + ' [' + dev.status + ']');
+                } else {
+                    var isFreeStatic = (data.freeStaticIps || []).indexOf(query) !== -1;
+                    var isFreeDhcp   = (data.freeDhcpIps   || []).indexOf(query) !== -1;
+                    if (isFreeStatic)     showStatus(query + ' — Free static IP (available)');
+                    else if (isFreeDhcp) showStatus(query + ' — Free DHCP IP (available)');
+                    else showError(query + ' not found in any known range');
+                }
+            } catch(e) { showError('Search failed: ' + e.message); }
+        }
+
+        async function doPing() {
+            var ip = document.getElementById('pingInput').value.trim();
+            if (!ip) return;
+            var el = document.getElementById('pingResult');
+            el.style.color = 'var(--text-muted)';
+            el.textContent = 'pinging…';
+            try {
+                var res = await fetch(API_BASE + '/api/ping', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ip:ip}) });
+                var d   = await res.json();
+                if (d.alive) { el.style.color='var(--active)'; el.textContent = d.ms + ' ms'; }
+                else         { el.style.color='var(--danger)'; el.textContent = 'no reply'; }
+            } catch(e) { el.style.color='var(--danger)'; el.textContent='error'; }
+        }
+
+        /* ── PROXMOX HOST MANAGEMENT ── */
+        async function pveLoadHosts() {
+            try {
+                var res   = await fetch(API_BASE + '/api/proxmox/hosts');
+                var hosts = await res.json();
+                pveRenderHostsTable(hosts);
+            } catch(e) {}
+        }
+
+        function pveRenderHostsTable(hosts) {
+            var tbody = document.getElementById('pve-hosts-tbody');
+            if (!hosts || !hosts.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="pve-empty">No hosts configured</td></tr>';
+                return;
+            }
+            tbody.innerHTML = hosts.map(function(h) {
+                var sslLabel = h.verify_ssl ? 'Yes' : 'No';
+                var dotCls   = 'pve-status-dot ' + (h.last_error ? 'pve-status-err' : h.polled_at ? 'pve-status-ok' : 'pve-status-unk');
+                var statusTxt = h.last_error ? 'Error' : h.polled_at ? 'OK' : 'Not tested';
+                return '<tr>' +
+                    '<td>' + esc(h.label) + '</td>' +
+                    '<td style="font-family:\'Courier Prime\',monospace">' + esc(h.host) + '</td>' +
+                    '<td style="font-family:\'Courier Prime\',monospace">' + (h.port || 8006) + '</td>' +
+                    '<td style="font-family:\'Courier Prime\',monospace;font-size:0.72rem">' + esc(h.token_id || '') + '</td>' +
+                    '<td>' + sslLabel + '</td>' +
+                    '<td><span class="' + dotCls + '"></span>' + statusTxt + '</td>' +
+                    '<td style="white-space:nowrap">' +
+                        '<button class="btn" style="padding:6px 12px;font-size:0.65rem" onclick="pveTestHost(' + h.id + ')" title="Test connection">Test</button> ' +
+                        '<button class="btn btn-danger" style="padding:6px 12px;font-size:0.65rem" onclick="pveDeleteHost(' + h.id + ',\'' + esc(h.label) + '\')">Delete</button>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        async function pveAddHost() {
+            var form = document.getElementById('pve-add-host-form');
+            var data = {
+                label: form.label.value.trim(), host: form.host.value.trim(),
+                port: parseInt(form.port.value) || 8006, token_id: form.token_id.value.trim(),
+                token_secret: form.token_secret.value.trim(), verify_ssl: form.verify_ssl.checked, enabled: true,
+            };
+            try {
+                var res = await fetch(API_BASE + '/api/proxmox/hosts', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+                if (res.ok) { form.reset(); showStatus('Proxmox host added'); pveLoadHosts(); }
+                else { var err = await res.json(); showError('Error: ' + (err.detail || 'Unknown error')); }
+            } catch(e) { showError('Error: ' + e.message); }
+        }
+
+        async function pveTestNew() {
+            var form = document.getElementById('pve-add-host-form');
+            var data = {
+                label: form.label.value.trim() || 'test', host: form.host.value.trim(),
+                port: parseInt(form.port.value) || 8006, token_id: form.token_id.value.trim(),
+                token_secret: form.token_secret.value.trim(), verify_ssl: form.verify_ssl.checked, enabled: true,
+            };
+            if (!data.host || !data.token_id || !data.token_secret) { showError('Fill in Host, Token ID, and Token Secret first'); return; }
+            showStatus('Testing connection…');
+            try {
+                var res  = await fetch(API_BASE + '/api/proxmox/hosts/test-new', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+                var json = await res.json();
+                if (json.success) showStatus('Connected ✓ — ' + json.nodes + ' node(s), ' + json.vms + ' VM(s), ' + json.containers + ' container(s)');
+                else showError('Connection failed: ' + json.error);
+            } catch(e) { showError('Test failed: ' + e.message); }
+        }
+
+        async function pveTestHost(id) {
+            showStatus('Testing connection…');
+            try {
+                var res  = await fetch(API_BASE + '/api/proxmox/hosts/' + id + '/test', { method:'POST' });
+                var json = await res.json();
+                if (json.success) showStatus('Connected ✓ — ' + json.nodes + ' node(s), ' + json.vms + ' VM(s), ' + json.containers + ' container(s)');
+                else showError('Connection failed: ' + json.error);
+                pveLoadHosts();
+            } catch(e) { showError('Test failed: ' + e.message); }
+        }
+
+        async function pveDeleteHost(id, label) {
+            if (!confirm('Delete Proxmox host "' + label + '"?')) return;
+            try {
+                await fetch(API_BASE + '/api/proxmox/hosts/' + id, { method:'DELETE' });
+                showStatus('Host deleted');
+                pveLoadHosts();
+            } catch(e) { showError('Delete failed: ' + e.message); }
+        }
+
+        /* ── PASSWORD ── */
+        async function changePassword() {
+            var currentPw = document.getElementById('currentPw').value;
+            var newPw     = document.getElementById('newPw').value;
+            var confirmPw = document.getElementById('confirmPw').value;
+            if (!currentPw) { showError('Enter your current password'); return; }
+            if (!newPw)     { showError('Enter a new password'); return; }
+            if (newPw.length < 8) { showError('New password must be at least 8 characters'); return; }
+            if (newPw !== confirmPw) { showError('New passwords do not match'); return; }
+            try {
+                var res  = await fetch(API_BASE + '/api/change-password', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({ currentPassword:currentPw, newPassword:newPw }),
+                });
+                var data = await res.json();
+                if (res.ok && data.status === 'ok') {
+                    showStatus('Password changed successfully');
+                    document.getElementById('currentPw').value = '';
+                    document.getElementById('newPw').value     = '';
+                    document.getElementById('confirmPw').value = '';
+                } else {
+                    showError(data.detail || data.message || 'Password change failed');
+                }
+            } catch(e) { showError('Error: ' + e.message); }
+        }
+
+        /* ── UPDATE ── */
+        var _updateData = null;
+        async function checkUpdate() {
+            var btn = document.getElementById('checkUpdateBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Checking…'; }
+            try {
+                var res = await fetch(API_BASE + '/api/check-update');
+                var d   = await res.json();
+                _updateData = d;
+                var availRow  = document.getElementById('sysUpdateAvailRow');
+                var upToDateRow = document.getElementById('sysUpToDateRow');
+                var latestVer = document.getElementById('sysLatestVer');
+                var relLink   = document.getElementById('sysReleaseLink');
+                var nowBtn    = document.getElementById('updateNowBtn');
+                if (d.update_available) {
+                    if (latestVer) latestVer.textContent = 'v' + d.latest;
+                    if (relLink && d.release_url) relLink.href = d.release_url;
+                    if (availRow) availRow.classList.remove('hidden');
+                    if (upToDateRow) upToDateRow.classList.add('hidden');
+                    if (nowBtn) nowBtn.classList.remove('hidden');
+                    showStatus('Update available: v' + d.latest);
+                } else {
+                    if (availRow) availRow.classList.add('hidden');
+                    if (upToDateRow) upToDateRow.classList.remove('hidden');
+                    if (nowBtn) nowBtn.classList.add('hidden');
+                    showStatus('Already on the latest version');
+                }
+            } catch(e) {
+                showError('Update check failed: ' + e.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Check Now'; }
+            }
+        }
+        function openUpdateModal() {
+            if (!_updateData) return;
+            document.getElementById('updCurrentVer').textContent = 'v' + (_updateData.current || '?');
+            document.getElementById('updLatestVer').textContent  = 'v' + (_updateData.latest  || '?');
+            var rl = document.getElementById('updReleaseLink');
+            if (rl && _updateData.release_url) rl.href = _updateData.release_url;
+            document.getElementById('updateProgress').style.display = 'none';
+            document.getElementById('updateBtns').style.display = '';
+            document.getElementById('updateOverlay').classList.add('is-open');
+        }
+        function closeUpdateModal() { document.getElementById('updateOverlay').classList.remove('is-open'); }
+        async function triggerUpdate() {
+            document.getElementById('updateBtns').style.display     = 'none';
+            document.getElementById('updateProgress').style.display = 'block';
+            try { await fetch(API_BASE + '/api/update', { method:'POST' }); } catch(e) {}
+            setTimeout(function() { window.location.reload(); }, 8000);
+        }
+
+        /* ── PROXMOX SETUP CMD ── */
+        function copySetupCmd() {
+            var cmd = 'bash <(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main/proxmox/setup-token.sh)';
+            navigator.clipboard.writeText(cmd).then(function() {
+                showStatus('Command copied to clipboard');
+            }).catch(function() {
+                var el = document.getElementById('pveSetupCmd');
+                var sel = window.getSelection();
+                var range = document.createRange();
+                range.selectNodeContents(el);
+                sel.removeAllRanges();
+                sel.addRange(range);
+                showStatus('Select the command and copy manually');
+            });
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeUpdateModal();
+        });
+
+        loadConfig();
+        fetch(API_BASE + '/api/version').then(function(r) { return r.json(); }).then(function(d) {
+            var el = document.getElementById('appVersion');
+            var sv = document.getElementById('sysCurrentVer');
+            if (d.version) {
+                if (el) el.textContent = 'v' + d.version;
+                if (sv) sv.textContent = 'v' + d.version;
+            }
+        }).catch(function(){});
+    </script>
+</body>
+</html>

@@ -59,7 +59,42 @@ You will be prompted to choose:
 | **Default** | Debian LXC · 1 CPU · 512 MB RAM · 4 GB disk · DHCP — no further questions |
 | **Advanced** | Choose CT ID, hostname, CPU cores, RAM, disk, storage pool, bridge, static IP |
 
-The script automatically downloads the Debian template if not already present, creates the container, and runs the full installer inside it.
+The script automatically downloads the Debian template if not already present, creates the container, runs the full installer inside it, and then **creates a read-only Proxmox API token** and prints it for you to paste into the UI.
+
+---
+
+## Proxmox Monitoring Setup
+
+LAN Tracker connects to Proxmox VE via an API token. The **LXC installer creates one automatically** — a `monitoring@pam` user with the built-in `PVEAuditor` role (read-only access to nodes, VMs, containers, storage, and task logs).
+
+If you installed LAN Tracker on bare metal (not via the LXC installer), run this one-liner **on your Proxmox VE host shell**:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main/proxmox/setup-token.sh)
+```
+
+This creates the `monitoring@pam` user, a minimal `LanTrackerRole`, and an API token — then prints the token secret for you to copy. Safe to re-run at any time.
+
+The token secret is shown once when created. Then in LAN Tracker go to **Settings → Proxmox → Add Host** and enter:
+
+| Field | Value |
+|---|---|
+| Token ID | `monitoring@pam!lan-tracker` |
+| Token Secret | *(the secret shown above)* |
+
+**What the token can do:**
+
+| Privilege | Purpose |
+|---|---|
+| `VM.Audit` | Read VM / container details |
+| `VM.PowerMgmt` | Start, stop, reboot, shutdown VMs and containers |
+| `Sys.Audit` | Read node stats, task logs, backup schedules |
+| `Datastore.Audit` | Read storage content |
+| `SDN.Audit` | Read SDN/network info |
+
+It cannot create or delete VMs, modify configs, manage users, or access backup file contents on CIFS/NFS shares (see note below).
+
+> **CIFS/NFS backup storage:** Due to a Proxmox API limitation, backup files on CIFS or NFS shares are not visible to non-root tokens via the content API. LAN Tracker automatically falls back to reading vzdump task logs to reconstruct the backup list — no extra setup or elevated permissions needed.
 
 ---
 
