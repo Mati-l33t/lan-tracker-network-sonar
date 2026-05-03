@@ -84,7 +84,7 @@ get_template() {
     local hit
     hit=$(pveam list "$stor" 2>/dev/null | awk '{print $1}' | grep "debian-13" | sort -V | tail -1 || true)
     if [ -n "$hit" ]; then
-      echo "  ${CM}✔️   Template found on '${stor}': ${hit}${CL}" >&2
+      echo -e "  ${CM}✔️   Template found on '${stor}': ${hit}${CL}" >&2
       echo "$hit"
       return
     fi
@@ -216,6 +216,10 @@ build_container() {
   tz=$(timedatectl show --value --property=Timezone 2>/dev/null || echo "UTC")
   [[ "$tz" == Etc/* ]] && tz="UTC"
 
+  local ns
+  ns=$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf 2>/dev/null || true)
+  [ -z "$ns" ] && ns="8.8.8.8"
+
   msg_info "Creating LXC container ${CTID}"
   pct create "$CTID" "$TEMPLATE" \
     --hostname    "$HN" \
@@ -223,6 +227,7 @@ build_container() {
     --memory      "$RAM_SIZE" \
     --rootfs      "${CONTAINER_STORAGE}:${DISK_SIZE}" \
     --net0        "name=eth0,bridge=${BRG},ip=${NET}${GATE}${VLAN_TAG}" \
+    --nameserver  "$ns" \
     --features    "nesting=1" \
     --unprivileged "$UNPRIVILEGED" \
     --onboot      1 \
@@ -244,6 +249,17 @@ build_container() {
     fi
   done
   msg_ok "Network connected"
+
+  msg_info "Waiting for DNS"
+  local dns_tries=0
+  while ! pct exec "$CTID" -- getent hosts github.com >/dev/null 2>&1; do
+    sleep 2
+    dns_tries=$((dns_tries + 1))
+    if [ "$dns_tries" -gt 15 ]; then
+      msg_error "DNS not resolving inside container — check nameserver config"
+    fi
+  done
+  msg_ok "DNS working"
 
   CT_IP=$(pct exec "$CTID" -- hostname -I 2>/dev/null | awk '{print $1}')
 }
