@@ -248,40 +248,6 @@ build_container() {
   CT_IP=$(pct exec "$CTID" -- hostname -I 2>/dev/null | awk '{print $1}')
 }
 
-# ── Proxmox API token ─────────────────────────────────────────────────────────
-setup_api_token() {
-  echo ""
-  echo -e "${TAB}${BOLD}🔑 Creating Proxmox API Token${CL}"
-
-  # Create read-only monitoring user (no-op if already exists)
-  pveum user add monitoring@pam --comment "LAN Tracker read-only monitoring" 2>/dev/null || true
-
-  # Remove any existing lan-tracker token so we can print a fresh secret
-  pveum user token remove monitoring@pam lan-tracker 2>/dev/null || true
-
-  # Create token — privsep=0 so it inherits the user's ACL grants below
-  local token_json
-  token_json=$(pveum user token add monitoring@pam lan-tracker \
-    --comment "LAN Tracker" --privsep 0 --output-format json 2>/dev/null) || true
-
-  API_TOKEN_SECRET=$(echo "$token_json" \
-    | python3 -c "import json,sys; print(json.load(sys.stdin)['value'])" 2>/dev/null || echo "")
-
-  # Create a minimal custom role — read everything + power-manage VMs/CTs
-  pveum role add LanTrackerRole \
-    --privs "Datastore.Audit,Sys.Audit,SDN.Audit,VM.Audit,VM.PowerMgmt" 2>/dev/null \
-    || pveum role modify LanTrackerRole \
-    --privs "Datastore.Audit,Sys.Audit,SDN.Audit,VM.Audit,VM.PowerMgmt" 2>/dev/null || true
-
-  pveum acl modify / --user monitoring@pam --role LanTrackerRole 2>/dev/null || true
-
-  if [ -n "$API_TOKEN_SECRET" ]; then
-    msg_ok "API token created (LanTrackerRole)"
-  else
-    echo -e "${TAB}${YW}  Could not create API token automatically — see README for manual steps.${CL}"
-  fi
-}
-
 # ── Run install inside container ───────────────────────────────────────────────
 run_install() {
   msg_info "Downloading install script"
@@ -308,12 +274,9 @@ else
   advanced_settings
 fi
 
-API_TOKEN_SECRET=""
-
 echo -e "${TAB}${BOLD}🚀 Creating LAN Tracker LXC...${CL}"
 build_container
 run_install
-setup_api_token
 
 echo ""
 msg_ok "LAN Tracker installation complete!"
@@ -322,18 +285,7 @@ echo -e "${TAB}${GN}🌐 Web UI: ${BL}http://${CT_IP}:8080${CL}"
 echo -e "${TAB}${YW}📋 Logs:   journalctl -u lan-tracker -f  (inside container)${CL}"
 echo -e "${TAB}${YW}🖥️  Enter:  pct enter ${CTID}${CL}"
 echo ""
-
-if [ -n "$API_TOKEN_SECRET" ]; then
-  echo -e "${TAB}${BOLD}${BL}┌─────────────────────────────────────────────────────┐${CL}"
-  echo -e "${TAB}${BOLD}${BL}│         Proxmox API Token for LAN Tracker           │${CL}"
-  echo -e "${TAB}${BOLD}${BL}├─────────────────────────────────────────────────────┤${CL}"
-  echo -e "${TAB}${BOLD}${BL}│${CL}  Token ID  : ${GN}monitoring@pam!lan-tracker${CL}"
-  echo -e "${TAB}${BOLD}${BL}│${CL}  Secret    : ${GN}${API_TOKEN_SECRET}${CL}"
-  echo -e "${TAB}${BOLD}${BL}│${CL}"
-  echo -e "${TAB}${BOLD}${BL}│${CL}  Add this host in LAN Tracker:"
-  echo -e "${TAB}${BOLD}${BL}│${CL}    ${YW}Settings → Proxmox → Add Host${CL}"
-  echo -e "${TAB}${BOLD}${BL}├─────────────────────────────────────────────────────┤${CL}"
-  echo -e "${TAB}${BOLD}${BL}│${CL}  ${RD}Save this secret — it cannot be retrieved later${CL}"
-  echo -e "${TAB}${BOLD}${BL}└─────────────────────────────────────────────────────┘${CL}"
-  echo ""
-fi
+echo -e "${TAB}${BOLD}${BL}To connect this Proxmox host to LAN Tracker:${CL}"
+echo -e "${TAB}  Open LAN Tracker → ${YW}Settings → Proxmox${CL}"
+echo -e "${TAB}  The setup one-liner is shown there to create an API token on this host."
+echo ""

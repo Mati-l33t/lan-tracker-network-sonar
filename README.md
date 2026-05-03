@@ -66,9 +66,7 @@ The script automatically downloads the Debian template if not already present, c
 
 ## Proxmox Monitoring Setup
 
-LAN Tracker connects to Proxmox VE via an API token. The **LXC installer creates one automatically** — a `monitoring@pam` user with the built-in `PVEAuditor` role (read-only access to nodes, VMs, containers, storage, and task logs).
-
-If you installed LAN Tracker on bare metal (not via the LXC installer), run this one-liner **on your Proxmox VE host shell**:
+LAN Tracker connects to Proxmox VE via an API token. Run this one-liner **on your Proxmox VE host shell** to create one:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main/proxmox/setup-token.sh)
