@@ -71,6 +71,7 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
 EOF
   systemctl daemon-reload
+  systemctl restart container-getty@1 2>/dev/null || true
   msg_ok "Autologin configured"
 }
 
