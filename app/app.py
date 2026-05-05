@@ -20,7 +20,7 @@ VERSION_FILE = BASE_DIR.parent / "VERSION"
 app = FastAPI()
 
 # ── Auth middleware ────────────────────────────────────────────────────────────
-_UNPROTECTED = {"/login", "/logout", "/static/login.html", "/static/logo.png", "/static/favicon.ico"}
+_UNPROTECTED = {"/login", "/logout", "/static/login.html", "/static/logo.png", "/static/favicon.ico", "/api/subtitle"}
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
@@ -447,6 +447,31 @@ async def set_device_name(d: DevName):
 async def do_ping(d: IpOnly):
     ms = ping_host(d.ip)
     return {"ip": d.ip, "ms": ms, "alive": ms is not None}
+
+@app.get("/api/subtitle")
+async def get_subtitle():
+    c = db()
+    if not c: return {"subtitle": ""}
+    cur = c.cursor()
+    cur.execute("SELECT value FROM admin_config WHERE `key`='subtitle'")
+    row = cur.fetchone()
+    cur.close(); c.close()
+    return {"subtitle": row[0] if row else ""}
+
+class SubtitleBody(BaseModel):
+    subtitle: str = ""
+
+@app.post("/api/subtitle")
+async def set_subtitle(body: SubtitleBody):
+    val = body.subtitle.strip()[:60]
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute(
+        "INSERT INTO admin_config(`key`, value) VALUES('subtitle', %s) ON DUPLICATE KEY UPDATE value=%s",
+        (val, val))
+    c.commit(); cur.close(); c.close()
+    return {"status": "ok"}
 
 @app.post("/api/change-password")
 async def change_password(body: PwChange):

@@ -11,6 +11,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.1] — 2026-05-05
+
+### Fixed
+- **App subtitle not saving** — added missing `GET /api/subtitle` and `POST /api/subtitle` backend endpoints; subtitle set in Settings now persists and loads on all pages
+- **Hardcoded "Network Sonar" subtitle** — network, Proxmox, and login pages now load the subtitle dynamically instead of showing a fixed string
+- **Login page subtitle** — `/api/subtitle` is now a public endpoint so the login page can display the subtitle before authentication
+
+---
+
 ## [1.3.0] — 2026-05-05
 
 ### Added

@@ -142,7 +142,7 @@
             <img src="/static/logo.png" alt="LAN Tracker">
             <div>
                 <div class="logo-name">LAN <em>TRACKER</em></div>
-                <div class="logo-sub">Network Sonar</div>
+                <div class="logo-sub" id="logoSub" style="display:none;"></div>
             </div>
         </div>
         <div class="error-msg" id="errMsg">Invalid password — try again</div>
@@ -158,6 +158,10 @@
         if (new URLSearchParams(location.search).get('error')) {
             document.getElementById('errMsg').style.display = 'block';
         }
+        fetch('/api/subtitle').then(function(r){ return r.json(); }).then(function(d){
+            var el = document.getElementById('logoSub');
+            if (d.subtitle) { el.textContent = d.subtitle; el.style.display = ''; }
+        }).catch(function(){});
     </script>
 </body>
 </html>
