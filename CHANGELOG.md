@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to LAN Tracker Network Sonar are documented here.
+All notable changes to HomeLab Sonar are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
@@ -8,6 +8,26 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ---
 
 ## [Unreleased]
+
+---
+
+## [1.3.0] — 2026-05-05
+
+### Added
+- **Application dashboard** — self-hosted app launcher at `/dashboard`; responsive tile grid with icon, name, description, category grouping, and click-to-open behaviour
+- **selfhst/icons integration** — auto-detects app icons from the [selfhst/icons](https://github.com/selfhst/icons) CDN when you type an app name; tries SVG then PNG; covers 50+ common self-hosted apps with alias normalisation
+- **Custom icon upload** — upload PNG, JPG, SVG, or WebP (max 2 MB) per app; stored at `/opt/lan-tracker/static/uploads/icons/`
+- **Tags** — create coloured tags and assign them to dashboard apps; tags shown as badges on tiles
+- **Live status badges** — concurrent HTTP HEAD checks on all dashboard apps; ONLINE / OFFLINE badges with pulse animation
+- **Drag-and-drop ordering** — reorder dashboard apps in Settings by dragging rows; order persists via `sort_order` and is reflected on the dashboard
+- **Category grouping** — dashboard apps grouped by category on both the dashboard and in Settings; category headers align with tile columns
+- **Inline row editing** — edit an existing app in-place in Settings with icon re-detection and custom upload
+
+### Changed
+- **Settings default tab** — Settings now opens to System tab by default instead of Dashboard
+- **Settings → Dashboard layout** — Add Application panel moved above Tags panel
+- **Dashboard tile grid** — tiles centered on page; category labels track the left edge of the tile columns on all screen widths
+- **Renamed** — display name updated from *LAN Tracker* to *HomeLab Sonar* across all pages, titles, and docs; system paths and service name (`lan-tracker`) unchanged for backwards compatibility
 
 ---
 
@@ -30,6 +50,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **Update script** — switched from `git pull` to `git fetch && git reset --hard origin/main` to guarantee a clean update with no merge conflicts; user data (database, config) is never modified
 - **Proxmox charts** — sharper lines (`vector-effect="non-scaling-stroke"`); dynamic Y-scale prevents flat-line appearance at low utilisation; mid-range gridline added
 - **Mobile** — Proxmox tab bar is horizontally scrollable on small screens with hidden scrollbar
+- **LXC installer** — no longer automatically creates a Proxmox API token; users run `setup-token.sh` themselves via the Settings panel
 
 ### Fixed
 - Changelog link in the update panel now falls back to the releases page URL when no specific release URL is returned
@@ -54,6 +75,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Version endpoint (`/api/version`) — version displayed in footer
 - Systemd service with auto-restart on failure
 
-[Unreleased]: https://github.com/Mati-l33t/lan-tracker-network-sonar/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Mati-l33t/lan-tracker-network-sonar/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.2.0
 [1.0.0]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.0.0

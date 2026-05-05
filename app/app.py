@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-import os, asyncio, ipaddress, logging, bcrypt
+import os, asyncio, ipaddress, logging, bcrypt, uuid, json
 logger = logging.getLogger(__name__)
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
 import mysql.connector, subprocess, re, socket, struct
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pydantic import BaseModel
+from typing import List
 
 import auth
 import proxmox_routes
@@ -75,6 +76,17 @@ class IpOnly(BaseModel):
     ip:str
 class PwChange(BaseModel):
     currentPassword:str; newPassword:str
+class DashboardApp(BaseModel):
+    name:str; url:str; icon_type:str="initials"; icon_value:str=""
+    category:str=""; description:str=""; tags:List[int]=[]
+class DashboardTag(BaseModel):
+    name:str; color:str="#6366f1"
+class StatusItem(BaseModel):
+    id:int; url:str
+class StatusBody(BaseModel):
+    items:List[StatusItem]
+class DashboardReorder(BaseModel):
+    order:List[int]
 
 def db():
     try: return mysql.connector.connect(**_db_cfg())
@@ -112,6 +124,28 @@ def init():
     )""")
     cur.execute("ALTER TABLE proxmox_hosts ADD COLUMN IF NOT EXISTS polled_at DATETIME DEFAULT NULL")
     cur.execute("ALTER TABLE proxmox_hosts ADD COLUMN IF NOT EXISTS last_error TEXT DEFAULT NULL")
+    cur.execute("""CREATE TABLE IF NOT EXISTS dashboard_apps (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        name        VARCHAR(100) NOT NULL,
+        url         VARCHAR(500) NOT NULL,
+        icon_type   VARCHAR(20) DEFAULT 'initials',
+        icon_value  VARCHAR(500) DEFAULT NULL,
+        category    VARCHAR(100) DEFAULT NULL,
+        description VARCHAR(500) DEFAULT NULL,
+        tags        TEXT DEFAULT NULL,
+        sort_order  INT DEFAULT 0,
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    cur.execute("ALTER TABLE dashboard_apps ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT NULL")
+    cur.execute("ALTER TABLE dashboard_apps ADD COLUMN IF NOT EXISTS description VARCHAR(500) DEFAULT NULL")
+    cur.execute("ALTER TABLE dashboard_apps ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT NULL")
+    cur.execute("""CREATE TABLE IF NOT EXISTS dashboard_tags (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        name       VARCHAR(50) NOT NULL,
+        color      VARCHAR(20) NOT NULL DEFAULT '#6366f1',
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
     cur.execute("SELECT COUNT(*)FROM config")
     if cur.fetchone()[0] == 0:
         cur.execute("INSERT INTO config VALUES(1,%s,%s,%s,%s,%s)",
@@ -335,7 +369,7 @@ async def do_update():
 @app.get("/")
 async def root():
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/network/devices")
+    return RedirectResponse(url="/dashboard")
 
 @app.get("/network/devices")
 @app.get("/network/static")
@@ -363,6 +397,12 @@ async def proxmox_page():
 async def settings_page():
     return HTMLResponse(
         content=(BASE_DIR / "static" / "settings.html").read_text(),
+        headers={"Cache-Control": "no-cache"})
+
+@app.get("/dashboard")
+async def dashboard_page():
+    return HTMLResponse(
+        content=(BASE_DIR / "static" / "dashboard.html").read_text(),
         headers={"Cache-Control": "no-cache"})
 
 @app.get("/static/{p:path}")
@@ -425,6 +465,159 @@ async def change_password(body: PwChange):
     c.commit(); cur.close(); c.close()
     auth.ADMIN_HASH = new_hash
     return {"status": "ok"}
+
+@app.get("/api/dashboard/apps")
+async def get_dashboard_apps():
+    c = db()
+    if not c: return []
+    cur = c.cursor(dictionary=True)
+    cur.execute("SELECT * FROM dashboard_apps ORDER BY sort_order ASC, id ASC")
+    rows = cur.fetchall()
+    cur.execute("SELECT * FROM dashboard_tags")
+    tag_map = {t["id"]: t for t in cur.fetchall()}
+    cur.close(); c.close()
+    for r in rows:
+        if r.get("created_at"): r["created_at"] = r["created_at"].isoformat()
+        tag_ids = json.loads(r.get("tags") or "[]")
+        r["tags"] = [{"id": tid, "name": tag_map[tid]["name"], "color": tag_map[tid]["color"]}
+                     for tid in tag_ids if tid in tag_map]
+        r["category"] = r.get("category") or ""
+        r["description"] = r.get("description") or ""
+    return rows
+
+@app.post("/api/dashboard/apps")
+async def add_dashboard_app(body: DashboardApp):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute("SELECT COALESCE(MAX(sort_order),0)+1 FROM dashboard_apps")
+    next_order = cur.fetchone()[0]
+    cur.execute(
+        "INSERT INTO dashboard_apps(name,url,icon_type,icon_value,category,description,tags,sort_order) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+        (body.name, body.url, body.icon_type, body.icon_value or None,
+         body.category or None, body.description or None,
+         json.dumps(body.tags) if body.tags else None, next_order))
+    new_id = cur.lastrowid
+    c.commit(); cur.close(); c.close()
+    return {"id": new_id}
+
+@app.patch("/api/dashboard/reorder")
+async def reorder_dashboard_apps(body: DashboardReorder):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    for i, app_id in enumerate(body.order):
+        cur.execute("UPDATE dashboard_apps SET sort_order=%s WHERE id=%s", (i, app_id))
+    c.commit(); cur.close(); c.close()
+    return {"ok": True}
+
+@app.put("/api/dashboard/apps/{app_id}")
+async def update_dashboard_app(app_id: int, body: DashboardApp):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute(
+        "UPDATE dashboard_apps SET name=%s,url=%s,icon_type=%s,icon_value=%s,category=%s,description=%s,tags=%s WHERE id=%s",
+        (body.name, body.url, body.icon_type, body.icon_value or None,
+         body.category or None, body.description or None,
+         json.dumps(body.tags) if body.tags else None, app_id))
+    c.commit(); cur.close(); c.close()
+    return {"ok": True}
+
+@app.delete("/api/dashboard/apps/{app_id}")
+async def delete_dashboard_app(app_id: int):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute("SELECT icon_type,icon_value FROM dashboard_apps WHERE id=%s", (app_id,))
+    row = cur.fetchone()
+    cur.execute("DELETE FROM dashboard_apps WHERE id=%s", (app_id,))
+    c.commit(); cur.close(); c.close()
+    if row and row[0] == "custom" and row[1]:
+        try: (BASE_DIR / row[1].lstrip("/")).unlink(missing_ok=True)
+        except: pass
+    return {"ok": True}
+
+@app.post("/api/dashboard/upload-icon")
+async def upload_dashboard_icon(file: UploadFile = File(...)):
+    ALLOWED = {".png", ".jpg", ".jpeg", ".svg", ".webp"}
+    ext = Path(file.filename).suffix.lower() if file.filename else ""
+    if ext not in ALLOWED:
+        raise HTTPException(400, "Invalid file type")
+    content = await file.read()
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(413, "File too large — max 2 MB")
+    upload_dir = BASE_DIR / "static" / "uploads" / "icons"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    fname = str(uuid.uuid4()) + ext
+    (upload_dir / fname).write_bytes(content)
+    return {"url": "/static/uploads/icons/" + fname}
+
+@app.get("/api/dashboard/tags")
+async def get_dashboard_tags():
+    c = db()
+    if not c: return []
+    cur = c.cursor(dictionary=True)
+    cur.execute("SELECT * FROM dashboard_tags ORDER BY sort_order ASC, id ASC")
+    rows = cur.fetchall()
+    cur.close(); c.close()
+    for r in rows:
+        if r.get("created_at"): r["created_at"] = r["created_at"].isoformat()
+    return rows
+
+@app.post("/api/dashboard/tags")
+async def add_dashboard_tag(body: DashboardTag):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute("SELECT COALESCE(MAX(sort_order),0)+1 FROM dashboard_tags")
+    next_order = cur.fetchone()[0]
+    cur.execute("INSERT INTO dashboard_tags(name,color,sort_order) VALUES(%s,%s,%s)",
+                (body.name, body.color, next_order))
+    new_id = cur.lastrowid
+    c.commit(); cur.close(); c.close()
+    return {"id": new_id, "name": body.name, "color": body.color}
+
+@app.put("/api/dashboard/tags/{tag_id}")
+async def update_dashboard_tag(tag_id: int, body: DashboardTag):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute("UPDATE dashboard_tags SET name=%s,color=%s WHERE id=%s", (body.name, body.color, tag_id))
+    c.commit(); cur.close(); c.close()
+    return {"ok": True}
+
+@app.delete("/api/dashboard/tags/{tag_id}")
+async def delete_dashboard_tag(tag_id: int):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute("DELETE FROM dashboard_tags WHERE id=%s", (tag_id,))
+    cur.execute("SELECT id, tags FROM dashboard_apps WHERE tags IS NOT NULL AND tags != '[]'")
+    rows = cur.fetchall()
+    for row_id, tags_json in rows:
+        try:
+            tags = json.loads(tags_json or "[]")
+            if tag_id in tags:
+                tags = [t for t in tags if t != tag_id]
+                cur.execute("UPDATE dashboard_apps SET tags=%s WHERE id=%s",
+                            (json.dumps(tags) if tags else None, row_id))
+        except: pass
+    c.commit(); cur.close(); c.close()
+    return {"ok": True}
+
+@app.post("/api/dashboard/check-status")
+async def check_dashboard_status(body: StatusBody):
+    import httpx
+    async def _check(item):
+        try:
+            async with httpx.AsyncClient(verify=False, timeout=3.0, follow_redirects=True) as c:
+                await c.head(item.url)
+            return {"id": item.id, "online": True}
+        except:
+            return {"id": item.id, "online": False}
+    results = await asyncio.gather(*[_check(i) for i in body.items])
+    return list(results)
 
 @app.post("/api/device/ack")
 async def ack_device(d: IpOnly):

@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="app/static/logo.png" alt="LAN Tracker Logo" width="100">
+<img src="app/static/logo.png" alt="HomeLab Sonar Logo" width="100">
 
-# LAN Tracker Network Sonar
+# HomeLab Sonar
 
-**Self-hosted LAN scanner and IP manager — know every device on your network.**
+**Self-hosted LAN scanner, IP manager, and home lab dashboard — know every device on your network.**
 
 [![Release](https://img.shields.io/github/v/release/Mati-l33t/lan-tracker-network-sonar?style=flat-square&color=4f9eff)](https://github.com/Mati-l33t/lan-tracker-network-sonar/releases)
 [![License](https://img.shields.io/github/license/Mati-l33t/lan-tracker-network-sonar?style=flat-square&color=4f9eff)](LICENSE)
@@ -21,6 +21,7 @@
 - **Device details** — MAC address, hostname, vendor, ping latency, open ports
 - **7-day uptime sparklines** — visual history per device
 - **Proxmox monitoring** — real-time CPU, RAM, swap, disk, and network I/O per node; VM/LXC power control; backup viewer
+- **Application dashboard** — self-hosted app launcher with icons, categories, tags, drag-and-drop ordering, and live status badges
 - **Dark / Light theme** — persistent across sessions
 - **Network map** — visual topology of discovered devices
 - **One-command install** — single line for Debian/Ubuntu; Proxmox LXC installer included
@@ -60,13 +61,13 @@ You will be prompted to choose:
 | **Default** | Debian LXC · 1 CPU · 512 MB RAM · 4 GB disk · DHCP — no further questions |
 | **Advanced** | Choose CT ID, hostname, CPU cores, RAM, disk, storage pool, bridge, static IP |
 
-The script automatically downloads the Debian template if not already present, creates the container, runs the full installer inside it, and then **creates a read-only Proxmox API token** and prints it for you to paste into the UI.
+The script downloads the Debian template if needed, creates the container, and runs the full installer inside it.
 
 ---
 
 ## Proxmox Monitoring Setup
 
-LAN Tracker connects to Proxmox VE via an API token. Run this one-liner **on your Proxmox VE host shell** to create one:
+HomeLab Sonar connects to Proxmox VE via an API token. Run this one-liner **on your Proxmox VE host shell** to create one:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main/proxmox/setup-token.sh)
@@ -74,7 +75,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-networ
 
 This creates the `monitoring@pam` user, a minimal `LanTrackerRole`, and an API token — then prints the token secret for you to copy. Safe to re-run at any time.
 
-The token secret is shown once when created. Then in LAN Tracker go to **Settings → Proxmox → Add Host** and enter:
+The token secret is shown once when created. Then in HomeLab Sonar go to **Settings → Proxmox → Add Host** and enter:
 
 | Field | Value |
 |---|---|
@@ -93,7 +94,7 @@ The token secret is shown once when created. Then in LAN Tracker go to **Setting
 
 It cannot create or delete VMs, modify configs, manage users, or access backup file contents on CIFS/NFS shares (see note below).
 
-> **CIFS/NFS backup storage:** Due to a Proxmox API limitation, backup files on CIFS or NFS shares are not visible to non-root tokens via the content API. LAN Tracker automatically falls back to reading vzdump task logs to reconstruct the backup list — no extra setup or elevated permissions needed.
+> **CIFS/NFS backup storage:** Due to a Proxmox API limitation, backup files on CIFS or NFS shares are not visible to non-root tokens via the content API. HomeLab Sonar automatically falls back to reading vzdump task logs to reconstruct the backup list — no extra setup or elevated permissions needed.
 
 ---
 

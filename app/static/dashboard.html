@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN Tracker — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root, [data-theme="dark"] {
+            --bg: #0d0d0f; --bg2: #111115; --surface: #18181d; --surface2: #1f1f26;
+            --border: #2c2c38; --text: #e0e0e8; --text-muted: #666676; --text-dim: #38383f;
+            --accent: #22d3ee; --accent-glow: rgba(34,211,238,0.14); --accent-strong: rgba(34,211,238,0.3);
+            --accent2: #f59e0b;
+            --active: #34d399; --active-bg: rgba(52,211,153,0.09);
+            --danger: #f43f5e; --danger-bg: rgba(244,63,94,0.1);
+        }
+        [data-theme="light"] {
+            --bg: #f4ede0; --bg2: #ece4d4; --surface: #fdf8f0; --surface2: #f5ede0;
+            --border: #c8b89a; --text: #1a2a38; --text-muted: #7a6a54; --text-dim: #b0a088;
+            --accent: #1e3d6b; --accent-glow: rgba(30,61,107,0.14); --accent-strong: rgba(30,61,107,0.28);
+            --accent2: #b84010;
+            --active: #1a6b45; --active-bg: rgba(26,107,69,0.1);
+            --danger: #be1d3c; --danger-bg: rgba(190,29,60,0.1);
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        @keyframes fade-up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slide-down { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes tile-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        @keyframes status-pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
+        html { scroll-behavior:smooth; }
+        body { background:var(--bg); color:var(--text); font-family:'Chakra Petch',sans-serif; min-height:100vh; overflow-x:hidden; transition:background 0.4s,color 0.4s; }
+        body::before {
+            content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+            background: radial-gradient(ellipse 70% 55% at 0% 0%, rgba(34,211,238,0.07) 0%, transparent 65%),
+                        radial-gradient(ellipse 55% 45% at 100% 100%, rgba(167,139,250,0.07) 0%, transparent 65%),
+                        radial-gradient(ellipse 40% 35% at 75% 10%, rgba(245,158,11,0.04) 0%, transparent 60%);
+        }
+        [data-theme="light"] body::before {
+            background: radial-gradient(ellipse 70% 55% at 0% 0%, rgba(30,61,107,0.06) 0%, transparent 65%),
+                        radial-gradient(ellipse 50% 40% at 100% 100%, rgba(184,64,16,0.05) 0%, transparent 65%);
+        }
+        .wrap { padding:28px 28px 0; position:relative; z-index:1; }
+        .s1 { animation:fade-up 0.55s ease 0.00s both; }
+        .s2 { animation:fade-up 0.55s ease 0.07s both; }
+        .s3 { animation:fade-up 0.55s ease 0.14s both; }
+
+        /* ── HEADER ── */
+        header { display:flex; align-items:center; justify-content:space-between; padding-bottom:18px; position:relative; }
+        header::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:linear-gradient(to right,transparent,var(--accent) 30%,var(--accent) 70%,transparent); opacity:0.5; }
+        .logo { display:flex; align-items:center; gap:14px; }
+        .logo-text-block { line-height:1; }
+        .logo-name { font-size:1.4rem; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--text); }
+        .logo-name em { font-style:normal; color:var(--accent); transition:color 0.4s; }
+        .logo-sub { font-size:0.58rem; letter-spacing:0.35em; text-transform:uppercase; color:var(--text-muted); margin-top:4px; }
+        .header-btns { display:flex; align-items:center; gap:8px; }
+        .hdr-icon-btn { width:36px; height:36px; background:none; border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text-muted); transition:color 0.2s,background 0.2s; }
+        .hdr-icon-btn svg { width:18px; height:18px; transition:transform 0.3s; }
+        .hdr-icon-btn:hover { color:var(--accent); background:var(--surface2); }
+        .hdr-icon-btn:hover svg { transform:rotate(30deg); }
+        .hdr-icon-btn.active { color:var(--accent); background:var(--accent-glow); }
+
+        /* ── PAGE NAV ── */
+        .page-nav { display:flex; gap:0; margin-top:0; }
+        .nav-link { padding:10px 20px; color:var(--text-muted); text-decoration:none; font-size:0.72rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; position:relative; transition:color 0.2s; }
+        .nav-link:hover { color:var(--text); }
+        .nav-link.active { color:var(--accent); }
+        .nav-link.active::after { content:''; position:absolute; bottom:-1px; left:12px; right:12px; height:2px; background:var(--accent); border-radius:2px 2px 0 0; }
+
+        /* ── NOTIFICATIONS ── */
+        #statusContainer { position:fixed; bottom:24px; right:24px; z-index:3000; display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+        .notif { padding:11px 16px; border-radius:8px; font-size:0.75rem; font-weight:600; letter-spacing:0.06em; border:1px solid; animation:slide-down 0.3s ease; }
+        .notif-err { background:var(--danger-bg); color:var(--danger); border-color:var(--danger); }
+
+        /* ── DASHBOARD ── */
+        .dash-section { margin-top:28px; padding-bottom:8px; }
+        .dash-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 360px)); gap:10px; justify-content:center; }
+
+        /* ── CATEGORY GROUP ── */
+        .dash-group { margin-bottom:24px; }
+        .dash-group:last-child { margin-bottom:0; }
+        .dash-cat-hd {
+            font-size:0.58rem; font-weight:600; letter-spacing:0.28em; text-transform:uppercase;
+            color:var(--text-muted); margin-bottom:10px;
+            display:flex; align-items:center; gap:10px;
+        }
+        .dash-cat-hd::after { content:''; flex:1; height:1px; background:var(--border); opacity:0.5; }
+
+        /* ── APP TILE (horizontal, mafl-style) ── */
+        .app-tile {
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:10px;
+            padding:12px 14px;
+            display:flex;
+            align-items:center;
+            gap:12px;
+            cursor:pointer;
+            text-decoration:none;
+            color:var(--text);
+            position:relative;
+            overflow:hidden;
+            transition:border-color 0.2s, box-shadow 0.2s, transform 0.2s, background 0.2s;
+        }
+        .app-tile::before {
+            content:''; position:absolute; inset:0; border-radius:10px; opacity:0; transition:opacity 0.2s;
+            background:radial-gradient(ellipse 120% 100% at 0% 50%, var(--accent-glow) 0%, transparent 70%);
+        }
+        .app-tile:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,0.3), 0 0 0 1px var(--accent-strong); }
+        .app-tile:hover::before { opacity:1; }
+        .app-tile:active { transform:translateY(0); }
+
+        /* ── ICON ── */
+        .tile-icon-wrap {
+            width:44px; height:44px; border-radius:10px;
+            background:var(--surface2); border:1px solid var(--border);
+            display:flex; align-items:center; justify-content:center;
+            overflow:hidden; flex-shrink:0; position:relative;
+            transition:border-color 0.2s, box-shadow 0.2s;
+        }
+        .app-tile:hover .tile-icon-wrap { border-color:var(--accent-strong); box-shadow:0 0 14px var(--accent-glow); }
+        .tile-icon-wrap img { width:28px; height:28px; object-fit:contain; border-radius:3px; }
+        .tile-initials {
+            width:28px; height:28px; border-radius:6px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.8rem; font-weight:700; color:#fff;
+        }
+
+        /* ── TILE BODY ── */
+        .tile-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; position:relative; z-index:1; }
+        .tile-name { font-size:0.82rem; font-weight:600; letter-spacing:0.03em; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.3; }
+        .tile-desc { font-size:0.65rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.4; letter-spacing:0.02em; }
+        .tile-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+        .tile-tag {
+            display:inline-block; padding:2px 7px; border-radius:3px;
+            font-size:0.56rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+            border:1px solid currentColor; white-space:nowrap; line-height:1.5;
+        }
+
+        .tile-anim { animation:tile-in 0.35s ease both; }
+
+        /* ── STATUS BADGE ── */
+        .tile-status {
+            flex-shrink:0; align-self:center;
+            display:inline-flex; align-items:center;
+            padding:2px 7px; border-radius:3px;
+            font-size:0.56rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+            border:1px solid currentColor; white-space:nowrap; line-height:1.5;
+        }
+        .tile-status-checking { color:var(--text-dim); border-color:var(--border); background:transparent; }
+        .tile-status-online   { color:var(--active); border-color:var(--active); background:var(--active-bg); animation:status-pulse 2.5s ease-in-out infinite; }
+        .tile-status-offline  { color:var(--danger); border-color:var(--danger); background:var(--danger-bg); }
+
+        /* ── EMPTY STATE ── */
+        .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 24px; gap:16px; }
+        .empty-icon { color:var(--text-dim); opacity:0.5; }
+        .empty-title { font-size:0.88rem; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-muted); }
+        .empty-sub { font-size:0.75rem; color:var(--text-dim); text-align:center; line-height:1.6; max-width:280px; }
+        .empty-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:8px; border:1px solid var(--accent); background:var(--accent-glow); color:var(--accent); font-family:'Chakra Petch',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; text-decoration:none; cursor:pointer; transition:all 0.2s; }
+        .empty-btn:hover { background:var(--accent); color:var(--bg); transform:translateY(-1px); }
+
+        /* ── LOADING ── */
+        .loader { display:flex; align-items:center; justify-content:center; padding:80px; }
+        .loader svg { animation:spin 1s linear infinite; color:var(--text-dim); }
+
+        /* ── FOOTER ── */
+        footer { margin-top:48px; padding:20px 0 28px; position:relative; text-align:center; font-size:0.62rem; color:var(--text-muted); letter-spacing:0.22em; text-transform:uppercase; }
+        footer::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(to right,transparent,var(--accent) 30%,var(--accent) 70%,transparent); opacity:0.5; }
+        footer a { color:var(--accent); text-decoration:none; }
+        footer a:hover { text-decoration:underline; }
+
+        @media (max-width:600px) {
+            .wrap { padding:16px 16px 0; }
+            header { flex-direction:column; align-items:flex-start; gap:12px; }
+            .header-btns { align-self:flex-end; }
+            .dash-grid { grid-template-columns:1fr; gap:8px; }
+            .app-tile { padding:10px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header class="s1">
+            <div class="logo">
+                <img src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
+                <div class="logo-text-block">
+                    <div class="logo-name">HOME<em>LAB</em> SONAR</div>
+                    <div class="logo-sub" id="logoSub" style="display:none;"></div>
+                </div>
+            </div>
+            <div class="header-btns">
+                <a href="/settings" class="hdr-icon-btn" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </a>
+                <button class="hdr-icon-btn" onclick="document.getElementById('logoutForm').submit()" title="Log out">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+                <form id="logoutForm" action="/logout" method="post" style="display:none"></form>
+            </div>
+        </header>
+
+        <nav class="page-nav s2">
+            <a href="/dashboard" class="nav-link active">Dashboard</a>
+            <a href="/proxmox/overview" class="nav-link">Proxmox</a>
+            <a href="/network/devices" class="nav-link">Network</a>
+        </nav>
+
+        <div id="statusContainer"></div>
+
+        <div class="dash-section s3" id="dashContent">
+            <div class="loader">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            </div>
+        </div>
+
+        <footer class="s3">
+            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion"></a></p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        (function() {
+            var saved = localStorage.getItem('lant-theme');
+            if (saved) document.documentElement.setAttribute('data-theme', saved);
+        })();
+
+        fetch('/api/subtitle').then(function(r){ return r.json(); }).then(function(d){
+            var el = document.getElementById('logoSub');
+            if (d.subtitle) { el.textContent = d.subtitle; el.style.display = ''; }
+        });
+
+        function esc(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        function showError(msg) {
+            document.getElementById('statusContainer').innerHTML = '<div class="notif notif-err">' + esc(msg) + '</div>';
+            setTimeout(function() { document.getElementById('statusContainer').innerHTML = ''; }, 5000);
+        }
+
+        var TILE_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6','#f97316','#a855f7'];
+        function colorForName(name) {
+            var h = 0; for (var i=0;i<name.length;i++) h=(h<<5)-h+name.charCodeAt(i);
+            return TILE_COLORS[Math.abs(h)%TILE_COLORS.length];
+        }
+        function initials(name) {
+            var p = name.trim().split(/\s+/);
+            return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():name.substring(0,2).toUpperCase();
+        }
+        function hexToRgba(hex, alpha) {
+            if (!hex||hex.length<7) return 'transparent';
+            var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+            return 'rgba('+r+','+g+','+b+','+alpha+')';
+        }
+
+        function renderTile(app, index) {
+            var tile = document.createElement('a');
+            tile.className = 'app-tile tile-anim';
+            tile.href = app.url || '#';
+            tile.target = '_blank';
+            tile.rel = 'noopener noreferrer';
+            tile.title = app.name;
+            tile.style.animationDelay = Math.min(index * 0.04, 0.5) + 's';
+            if (!app.url) tile.removeAttribute('href');
+
+            var iconWrap = document.createElement('div');
+            iconWrap.className = 'tile-icon-wrap';
+            if (app.icon_type === 'selfhst' || app.icon_type === 'custom') {
+                var img = document.createElement('img');
+                img.src = app.icon_value; img.alt = app.name;
+                img.onerror = function() {
+                    iconWrap.innerHTML = '';
+                    var init = document.createElement('div');
+                    init.className = 'tile-initials';
+                    init.style.background = colorForName(app.name);
+                    init.textContent = initials(app.name);
+                    iconWrap.appendChild(init);
+                };
+                iconWrap.appendChild(img);
+            } else {
+                var init = document.createElement('div');
+                init.className = 'tile-initials';
+                init.style.background = colorForName(app.name);
+                init.textContent = initials(app.name);
+                iconWrap.appendChild(init);
+            }
+
+            var body = document.createElement('div');
+            body.className = 'tile-body';
+
+            var nameEl = document.createElement('div');
+            nameEl.className = 'tile-name';
+            nameEl.textContent = app.name;
+            body.appendChild(nameEl);
+
+            if (app.description) {
+                var descEl = document.createElement('div');
+                descEl.className = 'tile-desc';
+                descEl.textContent = app.description;
+                body.appendChild(descEl);
+            }
+
+            if (app.tags && app.tags.length) {
+                var tagsEl = document.createElement('div');
+                tagsEl.className = 'tile-tags';
+                app.tags.forEach(function(tag) {
+                    var span = document.createElement('span');
+                    span.className = 'tile-tag';
+                    span.textContent = tag.name;
+                    span.style.color = tag.color;
+                    span.style.borderColor = tag.color;
+                    span.style.background = hexToRgba(tag.color, 0.12);
+                    tagsEl.appendChild(span);
+                });
+                body.appendChild(tagsEl);
+            }
+
+            var statusBadge = document.createElement('span');
+            statusBadge.className = 'tile-status tile-status-checking';
+            statusBadge.dataset.statusId = app.id;
+            statusBadge.textContent = '—';
+
+            tile.appendChild(iconWrap);
+            tile.appendChild(body);
+            tile.appendChild(statusBadge);
+            return tile;
+        }
+
+        function renderEmptyState() {
+            var el = document.createElement('div');
+            el.className = 'empty-state';
+            el.innerHTML =
+                '<svg class="empty-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>' +
+                '<div class="empty-title">No apps yet</div>' +
+                '<div class="empty-sub">Add your self-hosted services in Settings to build your dashboard.</div>' +
+                '<a href="/settings#dashboard" class="empty-btn">' +
+                    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+                    'Add Applications' +
+                '</a>';
+            return el;
+        }
+
+        async function checkAllStatus(apps) {
+            if (!apps.length) return;
+            var items = apps.filter(function(a){return a.url;}).map(function(a){return {id:a.id,url:a.url};});
+            if (!items.length) return;
+            try {
+                var res = await fetch(API_BASE + '/api/dashboard/check-status', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({items:items})
+                });
+                var results = await res.json();
+                results.forEach(function(r) {
+                    var el = document.querySelector('[data-status-id="' + r.id + '"]');
+                    if (!el) return;
+                    el.className = 'tile-status ' + (r.online ? 'tile-status-online' : 'tile-status-offline');
+                    el.textContent = r.online ? 'ONLINE' : 'OFFLINE';
+                });
+            } catch(e) { /* silent */ }
+        }
+
+        async function loadDashboard() {
+            try {
+                var res  = await fetch(API_BASE + '/api/dashboard/apps');
+                var apps = await res.json();
+                var content = document.getElementById('dashContent');
+                content.innerHTML = '';
+
+                if (!apps.length) { content.appendChild(renderEmptyState()); return; }
+
+                var cats = {}, uncategorized = [];
+                apps.forEach(function(app) {
+                    if (app.category) {
+                        if (!cats[app.category]) cats[app.category] = [];
+                        cats[app.category].push(app);
+                    } else {
+                        uncategorized.push(app);
+                    }
+                });
+
+                var catKeys = Object.keys(cats);
+                var hasGroups = catKeys.length > 0;
+                var idx = 0;
+
+                if (!hasGroups) {
+                    var grid = document.createElement('div');
+                    grid.className = 'dash-grid';
+                    apps.forEach(function(app) { grid.appendChild(renderTile(app, idx++)); });
+                    content.appendChild(grid);
+                } else {
+                    if (uncategorized.length) {
+                        var group = document.createElement('div'); group.className = 'dash-group';
+                        var grid = document.createElement('div'); grid.className = 'dash-grid';
+                        uncategorized.forEach(function(app) { grid.appendChild(renderTile(app, idx++)); });
+                        group.appendChild(grid); content.appendChild(group);
+                    }
+                    catKeys.forEach(function(cat) {
+                        var group = document.createElement('div'); group.className = 'dash-group';
+                        var hd = document.createElement('div'); hd.className = 'dash-cat-hd'; hd.textContent = cat;
+                        group.appendChild(hd);
+                        var grid = document.createElement('div'); grid.className = 'dash-grid';
+                        cats[cat].forEach(function(app) { grid.appendChild(renderTile(app, idx++)); });
+                        group.appendChild(grid); content.appendChild(group);
+                    });
+                    alignCatHeaders();
+                }
+                checkAllStatus(apps);
+            } catch(e) {
+                showError('Failed to load dashboard');
+            }
+        }
+
+        function alignCatHeaders() {
+            requestAnimationFrame(function() {
+                document.querySelectorAll('.dash-group').forEach(function(group) {
+                    var hd = group.querySelector('.dash-cat-hd');
+                    var firstTile = group.querySelector('.app-tile');
+                    if (!hd || !firstTile) return;
+                    var pad = firstTile.getBoundingClientRect().left - group.getBoundingClientRect().left;
+                    hd.style.paddingLeft = Math.max(0, pad) + 'px';
+                });
+            });
+        }
+        window.addEventListener('resize', alignCatHeaders);
+
+        loadDashboard();
+        fetch(API_BASE + '/api/version').then(function(r){return r.json();}).then(function(d){
+            var el = document.getElementById('appVersion');
+            if (el && d.version) el.textContent = 'v' + d.version;
+        }).catch(function(){});
+    </script>
+</body>
+</html>

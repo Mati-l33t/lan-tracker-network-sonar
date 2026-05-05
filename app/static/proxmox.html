@@ -48,6 +48,8 @@
             background: radial-gradient(ellipse 70% 55% at 0% 0%, rgba(30,61,107,0.06) 0%, transparent 65%),
                         radial-gradient(ellipse 50% 40% at 100% 100%, rgba(184,64,16,0.05) 0%, transparent 65%);
         }
+        [data-theme="light"] .pve-tab.active,
+        [data-theme="light"] .tf-btn.active { color:#fff; }
         body::after { display:none; }
         .wrap { padding:28px 28px 0; position:relative; z-index:1; }
         .s1 { animation:fade-up 0.55s ease 0.00s both; }
@@ -221,8 +223,9 @@
         </header>
 
         <nav class="page-nav s2">
-            <a href="/network/devices" class="nav-link">Network</a>
+            <a href="/dashboard" class="nav-link">Dashboard</a>
             <a href="/proxmox/overview" class="nav-link active">Proxmox</a>
+            <a href="/network/devices" class="nav-link">Network</a>
         </nav>
         <div class="pve-tab-bar s2" style="margin-top:10px;margin-bottom:0;">
             <a href="/proxmox/overview" class="pve-tab" id="subtab-overview">Overview</a>
@@ -260,7 +263,7 @@
         </div>
 
         <footer class="s7">
-            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker</p>
+            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion"></a></p>
         </footer>
     </div>
 
@@ -999,6 +1002,10 @@
         })();
 
         PVE.init();
+        fetch(API_BASE + '/api/version').then(function(r){return r.json();}).then(function(d){
+            var el=document.getElementById('appVersion');
+            if(el&&d.version) el.textContent='v'+d.version;
+        }).catch(function(){});
     </script>
 </body>
 </html>
