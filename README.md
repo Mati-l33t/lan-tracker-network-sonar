@@ -4,7 +4,7 @@
 
 # HomeLab Sonar
 
-**Self-hosted LAN scanner, network monitor, Proxmox dashboard, and app launcher — everything your home lab needs in one place.**
+**Open-source, self-hosted home lab dashboard — LAN scanner, network monitor, Proxmox manager, and app launcher in one place.**
 
 [![Release](https://img.shields.io/github/v/release/Mati-l33t/lan-tracker-network-sonar?style=flat-square&color=4f9eff)](https://github.com/Mati-l33t/lan-tracker-network-sonar/releases)
 [![License](https://img.shields.io/github/license/Mati-l33t/lan-tracker-network-sonar?style=flat-square&color=4f9eff)](LICENSE)
