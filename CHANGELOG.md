@@ -11,6 +11,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.3] — 2026-05-06
+
+### Fixed
+- **Initial password setup blocked** — on a fresh install with no password set, the Change Password form required a current password that didn't exist; current password field is now hidden on first setup, and the backend skips verification when no password has been configured yet
+
+### Added
+- **README: First Login & Password Setup section** — documents setting the initial password via the web UI or the command-line script
+
+---
+
 ## [1.3.2] — 2026-05-06
 
 ### Added
@@ -102,7 +112,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Version endpoint (`/api/version`) — version displayed in footer
 - Systemd service with auto-restart on failure
 
-[Unreleased]: https://github.com/Mati-l33t/lan-tracker-network-sonar/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/Mati-l33t/lan-tracker-network-sonar/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.3
 [1.3.2]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.2
 [1.3.1]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.1
 [1.3.0]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.0
