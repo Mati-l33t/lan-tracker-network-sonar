@@ -11,6 +11,24 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.2] — 2026-05-06
+
+### Added
+- **Favicon** — all pages now include a `<link rel="icon">` using the app logo; browser tabs and bookmarks show the logo
+- **Custom logo** — Settings → Appearance: upload any image to replace the default logo across all pages and the favicon; a Reset button restores the default; logo is stored in `static/uploads/` and persisted in the database
+- **Automatic update notifications** — amber dot badge on the Settings gear icon (visible on every page) when a newer version is available; checks GitHub Releases API once every 6 hours using a `localStorage` cache; the Settings update panel auto-populates from cache without requiring a manual button press
+
+### Fixed
+- **7-day activity always 0%** — `mysql.connector` does not collapse `%%` before sending SQL to MySQL, so `DATE_FORMAT(scan_date,'%%Y-%%m-%%d')` returned the literal string `%Y-%m-%d` for every row; replaced with a plain `SELECT scan_date` column fetch and Python `str()` conversion
+- **Quick Token Setup copy button broken on HTTP** — `navigator.clipboard` is unavailable in non-secure contexts (HTTP); copy button silently failed; now falls back to `document.execCommand('copy')` via a temporary textarea
+- **Empty state unreadable in dark mode** — dashboard "No apps yet" icon and subtitle used `var(--text-dim)` (`#38383f`) which is near-invisible on dark backgrounds; updated to `var(--text-muted)`
+
+### Changed
+- **Dashboard status badge repositioned** — ONLINE / OFFLINE badge moved to the upper-right corner of each tile (absolute positioned) and made slightly smaller; tile name and description no longer truncated by the badge
+- **Branding** — remaining "LAN Tracker" labels updated to "HomeLab Sonar": page `<title>` tags, header logo text, footer on all pages, Settings update panel, login page
+
+---
+
 ## [1.3.1] — 2026-05-05
 
 ### Fixed
@@ -84,7 +102,9 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Version endpoint (`/api/version`) — version displayed in footer
 - Systemd service with auto-restart on failure
 
-[Unreleased]: https://github.com/Mati-l33t/lan-tracker-network-sonar/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Mati-l33t/lan-tracker-network-sonar/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.2
+[1.3.1]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.1
 [1.3.0]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.3.0
 [1.2.0]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.2.0
 [1.0.0]: https://github.com/Mati-l33t/lan-tracker-network-sonar/releases/tag/v1.0.0

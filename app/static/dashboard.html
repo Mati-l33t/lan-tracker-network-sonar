@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAN Tracker — Dashboard</title>
+    <title>HomeLab Sonar — Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" id="faviconEl" href="/static/logo.png">
     <style>
         :root, [data-theme="dark"] {
             --bg: #0d0d0f; --bg2: #111115; --surface: #18181d; --surface2: #1f1f26;
@@ -61,6 +62,8 @@
         .hdr-icon-btn:hover { color:var(--accent); background:var(--surface2); }
         .hdr-icon-btn:hover svg { transform:rotate(30deg); }
         .hdr-icon-btn.active { color:var(--accent); background:var(--accent-glow); }
+        .upd-dot { position:absolute; top:5px; right:5px; width:7px; height:7px; border-radius:50%; background:#f59e0b; border:2px solid var(--bg); pointer-events:none; display:none; }
+        .upd-dot.show { display:block; }
 
         /* ── PAGE NAV ── */
         .page-nav { display:flex; gap:0; margin-top:0; }
@@ -93,7 +96,7 @@
             background:var(--surface);
             border:1px solid var(--border);
             border-radius:10px;
-            padding:12px 14px;
+            padding:12px 52px 12px 14px;
             display:flex;
             align-items:center;
             gap:12px;
@@ -143,10 +146,10 @@
 
         /* ── STATUS BADGE ── */
         .tile-status {
-            flex-shrink:0; align-self:center;
+            position:absolute; top:8px; right:10px;
             display:inline-flex; align-items:center;
-            padding:2px 7px; border-radius:3px;
-            font-size:0.56rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+            padding:1px 5px; border-radius:3px;
+            font-size:0.5rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
             border:1px solid currentColor; white-space:nowrap; line-height:1.5;
         }
         .tile-status-checking { color:var(--text-dim); border-color:var(--border); background:transparent; }
@@ -155,9 +158,9 @@
 
         /* ── EMPTY STATE ── */
         .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 24px; gap:16px; }
-        .empty-icon { color:var(--text-dim); opacity:0.5; }
+        .empty-icon { color:var(--text-muted); opacity:0.65; }
         .empty-title { font-size:0.88rem; font-weight:600; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-muted); }
-        .empty-sub { font-size:0.75rem; color:var(--text-dim); text-align:center; line-height:1.6; max-width:280px; }
+        .empty-sub { font-size:0.75rem; color:var(--text-muted); text-align:center; line-height:1.6; max-width:280px; }
         .empty-btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:8px; border:1px solid var(--accent); background:var(--accent-glow); color:var(--accent); font-family:'Chakra Petch',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; text-decoration:none; cursor:pointer; transition:all 0.2s; }
         .empty-btn:hover { background:var(--accent); color:var(--bg); transform:translateY(-1px); }
 
@@ -176,7 +179,7 @@
             header { flex-direction:column; align-items:flex-start; gap:12px; }
             .header-btns { align-self:flex-end; }
             .dash-grid { grid-template-columns:1fr; gap:8px; }
-            .app-tile { padding:10px 12px; }
+            .app-tile { padding:10px 50px 10px 12px; }
         }
     </style>
 </head>
@@ -184,16 +187,19 @@
     <div class="wrap">
         <header class="s1">
             <div class="logo">
-                <img src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
+                <img id="headerLogo" src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
                 <div class="logo-text-block">
                     <div class="logo-name">HOME<em>LAB</em> SONAR</div>
                     <div class="logo-sub" id="logoSub" style="display:none;"></div>
                 </div>
             </div>
             <div class="header-btns">
-                <a href="/settings" class="hdr-icon-btn" title="Settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                </a>
+                <div style="position:relative;display:inline-flex;">
+                    <a href="/settings" class="hdr-icon-btn" id="settingsGearLink" title="Settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    </a>
+                    <span class="upd-dot" id="updateDot" title="Update available — open Settings"></span>
+                </div>
                 <button class="hdr-icon-btn" onclick="document.getElementById('logoutForm').submit()" title="Log out">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </button>
@@ -216,7 +222,7 @@
         </div>
 
         <footer class="s3">
-            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion"></a></p>
+            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; Homelab Sonar &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion"></a></p>
         </footer>
     </div>
 
@@ -231,7 +237,26 @@
         fetch('/api/subtitle').then(function(r){ return r.json(); }).then(function(d){
             var el = document.getElementById('logoSub');
             if (d.subtitle) { el.textContent = d.subtitle; el.style.display = ''; }
+            if (d.logo_url) { document.getElementById('headerLogo').src = d.logo_url; document.getElementById('faviconEl').href = d.logo_url; }
         });
+
+        /* ── AUTO UPDATE CHECK ── */
+        (function(){
+            var KEY = 'hls-upd', TTL = 6 * 3600 * 1000;
+            function showDot() {
+                var dot = document.getElementById('updateDot');
+                if (dot) dot.classList.add('show');
+            }
+            var c; try { c = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+            if (c && (Date.now() - c.ts) < TTL) {
+                if (c.available) showDot();
+            } else {
+                fetch('/api/check-update').then(function(r){ return r.json(); }).then(function(d){
+                    try { localStorage.setItem(KEY, JSON.stringify({ts: Date.now(), available: d.update_available, latest: d.latest})); } catch(e) {}
+                    if (d.update_available) showDot();
+                }).catch(function(){});
+            }
+        })();
 
         function esc(s) {
             if (!s) return '';

@@ -276,10 +276,10 @@ def status():
     ls = cur.fetchone()["ls"]
     today = date.today()
     dates = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6,-1,-1)]
-    cur.execute("SELECT ip,DATE_FORMAT(scan_date,'%%Y-%%m-%%d') as d FROM device_history WHERE scan_date>=%s", (dates[0],))
+    cur.execute("SELECT ip, scan_date FROM device_history WHERE scan_date>=%s", (dates[0],))
     hist_map = {}
     for row in cur.fetchall():
-        hist_map.setdefault(row["ip"], set()).add(row["d"])
+        hist_map.setdefault(row["ip"], set()).add(str(row["scan_date"]))
     cur.close(); c.close()
     static_ips  = ips_range(cfg["staticStart"], cfg["staticEnd"])
     dhcp_ips    = ips_range(cfg["dhcpStart"],   cfg["dhcpEnd"])
@@ -451,12 +451,47 @@ async def do_ping(d: IpOnly):
 @app.get("/api/subtitle")
 async def get_subtitle():
     c = db()
-    if not c: return {"subtitle": ""}
+    if not c: return {"subtitle": "", "logo_url": None}
     cur = c.cursor()
-    cur.execute("SELECT value FROM admin_config WHERE `key`='subtitle'")
-    row = cur.fetchone()
+    cur.execute("SELECT `key`, value FROM admin_config WHERE `key` IN ('subtitle','custom_logo')")
+    rows = {r[0]: r[1] for r in cur.fetchall()}
     cur.close(); c.close()
-    return {"subtitle": row[0] if row else ""}
+    return {"subtitle": rows.get("subtitle", ""), "logo_url": rows.get("custom_logo") or None}
+
+@app.post("/api/logo")
+async def upload_logo(file: UploadFile = File(...)):
+    content = await file.read()
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 2 MB)")
+    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
+    if ext not in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}:
+        ext = ".png"
+    upload_dir = BASE_DIR / "static" / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    fname = "custom_logo" + ext
+    # remove any old custom_logo.* files first
+    for old in upload_dir.glob("custom_logo.*"):
+        old.unlink(missing_ok=True)
+    (upload_dir / fname).write_bytes(content)
+    url = "/static/uploads/" + fname
+    c = db()
+    if c:
+        cur = c.cursor()
+        cur.execute("INSERT INTO admin_config(`key`, value) VALUES('custom_logo', %s) ON DUPLICATE KEY UPDATE value=%s", (url, url))
+        c.commit(); cur.close(); c.close()
+    return {"url": url}
+
+@app.delete("/api/logo")
+async def delete_logo():
+    upload_dir = BASE_DIR / "static" / "uploads"
+    for old in upload_dir.glob("custom_logo.*"):
+        old.unlink(missing_ok=True)
+    c = db()
+    if c:
+        cur = c.cursor()
+        cur.execute("DELETE FROM admin_config WHERE `key`='custom_logo'")
+        c.commit(); cur.close(); c.close()
+    return {"status": "ok"}
 
 class SubtitleBody(BaseModel):
     subtitle: str = ""

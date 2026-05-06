@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAN Tracker — Proxmox</title>
+    <title>HomeLab Sonar — Proxmox</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" id="faviconEl" href="/static/logo.png">
     <style>
         :root, [data-theme="dark"] {
             --bg: #0d0d0f; --bg2: #111115; --surface: #18181d; --surface2: #1f1f26;
@@ -69,6 +70,8 @@
         .hdr-icon-btn:hover { color:var(--accent); background:var(--surface2); }
         .hdr-icon-btn:hover svg { transform:rotate(30deg); }
         .hdr-icon-btn.active { color:var(--accent); background:var(--accent-glow); }
+        .upd-dot { position:absolute; top:5px; right:5px; width:7px; height:7px; border-radius:50%; background:#f59e0b; border:2px solid var(--bg); pointer-events:none; display:none; }
+        .upd-dot.show { display:block; }
         /* ── PAGE NAV ─── */
         .page-nav { display:flex; align-items:stretch; gap:0; margin-top:0; margin-bottom:0; }
         .nav-link { padding:10px 20px; color:var(--text-muted); text-decoration:none; font-size:0.72rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; position:relative; transition:color 0.2s; white-space:nowrap; }
@@ -205,16 +208,19 @@
     <div class="wrap">
         <header class="s1">
             <div class="logo">
-                <img src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
+                <img id="headerLogo" src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
                 <div class="logo-text-block">
-                    <div class="logo-name">LAN <em>TRACKER</em></div>
+                    <div class="logo-name">HOME<em>LAB</em> SONAR</div>
                     <div class="logo-sub" id="logoSub" style="display:none;"></div>
                 </div>
             </div>
             <div class="header-btns">
-                <a href="/settings" class="hdr-icon-btn" title="Settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                </a>
+                <div style="position:relative;display:inline-flex;">
+                    <a href="/settings" class="hdr-icon-btn" id="settingsGearLink" title="Settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    </a>
+                    <span class="upd-dot" id="updateDot" title="Update available — open Settings"></span>
+                </div>
                 <button class="hdr-icon-btn" onclick="document.getElementById('logoutForm').submit()" title="Log out">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </button>
@@ -263,7 +269,7 @@
         </div>
 
         <footer class="s7">
-            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion"></a></p>
+            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; Homelab Sonar &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion"></a></p>
         </footer>
     </div>
 
@@ -278,7 +284,26 @@
         fetch('/api/subtitle').then(function(r){ return r.json(); }).then(function(d){
             var el = document.getElementById('logoSub');
             if (d.subtitle) { el.textContent = d.subtitle; el.style.display = ''; }
+            if (d.logo_url) { document.getElementById('headerLogo').src = d.logo_url; document.getElementById('faviconEl').href = d.logo_url; }
         }).catch(function(){});
+
+        /* ── AUTO UPDATE CHECK ── */
+        (function(){
+            var KEY = 'hls-upd', TTL = 6 * 3600 * 1000;
+            function showDot() {
+                var dot = document.getElementById('updateDot');
+                if (dot) dot.classList.add('show');
+            }
+            var c; try { c = JSON.parse(localStorage.getItem(KEY)); } catch(e) {}
+            if (c && (Date.now() - c.ts) < TTL) {
+                if (c.available) showDot();
+            } else {
+                fetch('/api/check-update').then(function(r){ return r.json(); }).then(function(d){
+                    try { localStorage.setItem(KEY, JSON.stringify({ts: Date.now(), available: d.update_available, latest: d.latest})); } catch(e) {}
+                    if (d.update_available) showDot();
+                }).catch(function(){});
+            }
+        })();
 
         function toggleTheme() {
             var html = document.documentElement;
@@ -997,7 +1022,7 @@
             var tab = document.getElementById('subtab-' + subPage);
             if (tab) tab.classList.add('active');
             var titles = { overview: 'Overview', vmscontainers: 'VMs & Containers', storage: 'Storage', backups: 'Backups' };
-            if (titles[subPage]) document.title = 'LAN Tracker — Proxmox / ' + titles[subPage];
+            if (titles[subPage]) document.title = 'HomeLab Sonar — Proxmox / ' + titles[subPage];
             if (subPage === 'overview') {
                 var tfBtns = document.getElementById('pve-tf-btns');
                 if (tfBtns) tfBtns.style.display = 'flex';

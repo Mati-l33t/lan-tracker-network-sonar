@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAN Tracker — Settings</title>
+    <title>HomeLab Sonar — Settings</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" id="faviconEl" href="/static/logo.png">
     <style>
         :root, [data-theme="dark"] {
             --bg: #0d0d0f; --bg2: #111115; --surface: #18181d; --surface2: #1f1f26;
@@ -66,6 +67,8 @@
         .hdr-icon-btn:hover { color:var(--accent); background:var(--surface2); }
         .hdr-icon-btn:hover svg { transform:rotate(30deg); }
         .hdr-icon-btn.active { color:var(--accent); background:var(--accent-glow); }
+        .upd-dot { position:absolute; top:5px; right:5px; width:7px; height:7px; border-radius:50%; background:#f59e0b; border:2px solid var(--bg); pointer-events:none; display:none; }
+        .upd-dot.show { display:block; }
 
         /* ── BACK LINK ─── */
         .back-link { display:inline-flex; align-items:center; gap:7px; padding:8px 0; color:var(--text-muted); text-decoration:none; font-size:0.68rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; transition:color 0.2s; margin-bottom:10px; }
@@ -302,16 +305,19 @@
     <div class="wrap">
         <header class="s1">
             <div class="logo">
-                <img src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
+                <img id="headerLogo" src="/static/logo.png" alt="Logo" style="width:64px;height:64px;object-fit:contain;">
                 <div class="logo-text-block">
                     <div class="logo-name">HOME<em>LAB</em> SONAR</div>
                     <div class="logo-sub" id="logoSub" style="display:none;"></div>
                 </div>
             </div>
             <div class="header-btns">
-                <a href="/settings" class="hdr-icon-btn active" title="Settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                </a>
+                <div style="position:relative;display:inline-flex;">
+                    <a href="/settings" class="hdr-icon-btn active" id="settingsGearLink" title="Settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    </a>
+                    <span class="upd-dot" id="updateDot" title="Update available"></span>
+                </div>
                 <button class="hdr-icon-btn" onclick="document.getElementById('logoutForm').submit()" title="Log out">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </button>
@@ -505,6 +511,20 @@
                         <button class="btn btn-save" onclick="saveSubtitle()" id="subtitleSaveBtn">Save</button>
                     </div>
                 </div>
+                <div class="theme-card" style="margin-top:16px;">
+                    <div class="theme-card-info">
+                        <strong>Custom Logo</strong>
+                        <div style="font-size:0.78rem;color:var(--text-muted)">Replaces the logo and favicon across all pages. PNG/SVG recommended.</div>
+                    </div>
+                    <div style="display:flex;gap:12px;align-items:center;">
+                        <img id="logoPreview" src="/static/logo.png" style="width:52px;height:52px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:var(--surface2);padding:4px;">
+                        <input id="logoFileInput" type="file" accept="image/*" style="display:none" onchange="uploadLogo(this)">
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            <button class="btn btn-save" onclick="document.getElementById('logoFileInput').click()">Upload</button>
+                            <button class="btn" id="logoResetBtn" onclick="resetLogo()" style="display:none;font-size:0.7rem;padding:5px 12px;">Reset to Default</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- SOFTWARE UPDATE -->
@@ -515,7 +535,7 @@
                 </div>
                 <div class="upd-row">
                     <div class="upd-row-info">
-                        <strong>LAN Tracker</strong>
+                        <strong>Homelab Sonar</strong>
                         <div style="font-size:0.78rem;color:var(--text-muted)">Installed: <span class="upd-ver-badge" id="sysCurrentVer">—</span></div>
                         <div class="upd-meta">
                             <div class="upd-meta-line hidden" id="sysUpdateAvailRow">
@@ -699,7 +719,7 @@
                 <button class="modal-x" onclick="closeUpdateModal()">&times;</button>
             </div>
             <div class="upd-modal-body">
-                A new version of LAN Tracker is available.
+                A new version of Homelab Sonar is available.
                 <div class="upd-ver-row">
                     <span class="upd-ver-old" id="updCurrentVer">v?</span>
                     <span class="arrow">→</span>
@@ -720,7 +740,7 @@
     </div>
 
         <footer class="s6">
-            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; LAN Tracker &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion" style="font-variant-numeric:tabular-nums"></a></p>
+            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; Homelab Sonar &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion" style="font-variant-numeric:tabular-nums"></a></p>
         </footer>
     </div>
 
@@ -752,6 +772,41 @@
             var r = await fetch('/api/subtitle');
             var d = await r.json();
             document.getElementById('subtitleInput').value = d.subtitle || '';
+            if (d.logo_url) {
+                document.getElementById('headerLogo').src = d.logo_url;
+                document.getElementById('faviconEl').href = d.logo_url;
+                document.getElementById('logoPreview').src = d.logo_url;
+                document.getElementById('logoResetBtn').style.display = '';
+            }
+        }
+
+        async function uploadLogo(input) {
+            if (!input.files || !input.files[0]) return;
+            var fd = new FormData();
+            fd.append('file', input.files[0]);
+            try {
+                var r = await fetch('/api/logo', {method:'POST', body:fd});
+                if (!r.ok) throw new Error();
+                var d = await r.json();
+                var url = d.url + '?t=' + Date.now();
+                document.getElementById('logoPreview').src = url;
+                document.getElementById('headerLogo').src = url;
+                document.getElementById('faviconEl').href = url;
+                document.getElementById('logoResetBtn').style.display = '';
+                showStatus('Logo updated');
+            } catch(e) { showStatus('Upload failed'); }
+            input.value = '';
+        }
+
+        async function resetLogo() {
+            try {
+                await fetch('/api/logo', {method:'DELETE'});
+                document.getElementById('logoPreview').src = '/static/logo.png';
+                document.getElementById('headerLogo').src = '/static/logo.png';
+                document.getElementById('faviconEl').href = '/static/logo.png';
+                document.getElementById('logoResetBtn').style.display = 'none';
+                showStatus('Logo reset to default');
+            } catch(e) { showStatus('Reset failed'); }
         }
         async function saveSubtitle() {
             var val = document.getElementById('subtitleInput').value.trim();
@@ -1031,38 +1086,72 @@
         }
 
         /* ── UPDATE ── */
+        var _UPD_KEY = 'hls-upd', _UPD_TTL = 6 * 3600 * 1000;
         var _updateData = null;
+
+        function _applyUpdateResult(d, fromManual) {
+            _updateData = d;
+            try { localStorage.setItem(_UPD_KEY, JSON.stringify({ts: Date.now(), available: d.update_available, latest: d.latest})); } catch(e) {}
+            var dot = document.getElementById('updateDot');
+            var availRow    = document.getElementById('sysUpdateAvailRow');
+            var upToDateRow = document.getElementById('sysUpToDateRow');
+            var latestVer   = document.getElementById('sysLatestVer');
+            var relLink     = document.getElementById('sysReleaseLink');
+            var nowBtn      = document.getElementById('updateNowBtn');
+            if (d.update_available) {
+                if (dot) dot.classList.add('show');
+                if (latestVer) latestVer.textContent = 'v' + d.latest;
+                if (relLink && d.release_url) relLink.href = d.release_url;
+                if (availRow) availRow.classList.remove('hidden');
+                if (upToDateRow) upToDateRow.classList.add('hidden');
+                if (nowBtn) nowBtn.classList.remove('hidden');
+                if (fromManual) showStatus('Update available: v' + d.latest);
+            } else {
+                if (dot) dot.classList.remove('show');
+                if (availRow) availRow.classList.add('hidden');
+                if (upToDateRow) upToDateRow.classList.remove('hidden');
+                if (nowBtn) nowBtn.classList.add('hidden');
+                if (fromManual) showStatus('Already on the latest version');
+            }
+        }
+
         async function checkUpdate() {
             var btn = document.getElementById('checkUpdateBtn');
             if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Checking…'; }
+            try { localStorage.removeItem(_UPD_KEY); } catch(e) {}
             try {
                 var res = await fetch(API_BASE + '/api/check-update');
                 var d   = await res.json();
-                _updateData = d;
-                var availRow  = document.getElementById('sysUpdateAvailRow');
-                var upToDateRow = document.getElementById('sysUpToDateRow');
-                var latestVer = document.getElementById('sysLatestVer');
-                var relLink   = document.getElementById('sysReleaseLink');
-                var nowBtn    = document.getElementById('updateNowBtn');
-                if (d.update_available) {
-                    if (latestVer) latestVer.textContent = 'v' + d.latest;
-                    if (relLink && d.release_url) relLink.href = d.release_url;
-                    if (availRow) availRow.classList.remove('hidden');
-                    if (upToDateRow) upToDateRow.classList.add('hidden');
-                    if (nowBtn) nowBtn.classList.remove('hidden');
-                    showStatus('Update available: v' + d.latest);
-                } else {
-                    if (availRow) availRow.classList.add('hidden');
-                    if (upToDateRow) upToDateRow.classList.remove('hidden');
-                    if (nowBtn) nowBtn.classList.add('hidden');
-                    showStatus('Already on the latest version');
-                }
+                _applyUpdateResult(d, true);
             } catch(e) {
                 showError('Update check failed: ' + e.message);
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg> Check Now'; }
             }
         }
+
+        /* ── AUTO UPDATE CHECK ── */
+        (function(){
+            var c; try { c = JSON.parse(localStorage.getItem(_UPD_KEY)); } catch(e) {}
+            if (c && (Date.now() - c.ts) < _UPD_TTL) {
+                if (c.available) {
+                    var dot = document.getElementById('updateDot');
+                    if (dot) dot.classList.add('show');
+                    var availRow = document.getElementById('sysUpdateAvailRow');
+                    var upToDateRow = document.getElementById('sysUpToDateRow');
+                    var nowBtn = document.getElementById('updateNowBtn');
+                    var latestVer = document.getElementById('sysLatestVer');
+                    if (latestVer && c.latest) latestVer.textContent = 'v' + c.latest;
+                    if (availRow) availRow.classList.remove('hidden');
+                    if (upToDateRow) upToDateRow.classList.add('hidden');
+                    if (nowBtn) nowBtn.classList.remove('hidden');
+                }
+            } else {
+                fetch('/api/check-update').then(function(r){ return r.json(); }).then(function(d){
+                    _applyUpdateResult(d, false);
+                }).catch(function(){});
+            }
+        })();
         function openUpdateModal() {
             if (!_updateData) return;
             document.getElementById('updCurrentVer').textContent = 'v' + (_updateData.current || '?');
@@ -1084,17 +1173,25 @@
         /* ── PROXMOX SETUP CMD ── */
         function copySetupCmd() {
             var cmd = 'bash <(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main/proxmox/setup-token.sh)';
-            navigator.clipboard.writeText(cmd).then(function() {
-                showStatus('Command copied to clipboard');
-            }).catch(function() {
-                var el = document.getElementById('pveSetupCmd');
-                var sel = window.getSelection();
-                var range = document.createRange();
-                range.selectNodeContents(el);
-                sel.removeAllRanges();
-                sel.addRange(range);
-                showStatus('Select the command and copy manually');
-            });
+            function fallback() {
+                var ta = document.createElement('textarea');
+                ta.value = cmd;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                try { document.execCommand('copy'); showStatus('Command copied to clipboard'); }
+                catch(e) { showStatus('Select the command and copy manually'); }
+                document.body.removeChild(ta);
+            }
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(cmd).then(function() {
+                    showStatus('Command copied to clipboard');
+                }).catch(fallback);
+            } else {
+                fallback();
+            }
         }
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeUpdateModal();
