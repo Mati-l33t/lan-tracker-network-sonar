@@ -282,6 +282,18 @@
         footer a { color:var(--accent); text-decoration:none; }
         footer a:hover { text-decoration:underline; }
 
+        /* ── TOGGLE SWITCH ─── */
+        .toggle-btn { background:none; border:none; cursor:pointer; padding:0; display:inline-flex; align-items:center; flex-shrink:0; }
+        .toggle-track { display:inline-flex; align-items:center; width:42px; height:24px; border-radius:12px; background:var(--border); border:1px solid var(--border); transition:background 0.2s,border-color 0.2s; position:relative; }
+        .toggle-thumb { position:absolute; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.3); transition:transform 0.2s; }
+        .toggle-btn.on .toggle-track { background:var(--accent); border-color:var(--accent); }
+        .toggle-btn.on .toggle-thumb { transform:translateX(18px); }
+
+        /* ── BACK TO TOP ─── */
+        #backToTop { position:fixed; bottom:28px; right:28px; width:40px; height:40px; border-radius:50%; background:var(--surface2); border:1px solid var(--border); color:var(--accent); cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.25s,transform 0.25s,background 0.2s; z-index:500; box-shadow:0 4px 16px rgba(0,0,0,0.4); }
+        #backToTop.visible { opacity:1; pointer-events:auto; }
+        #backToTop:hover { background:var(--accent-glow); transform:translateY(-2px); }
+
         @media (max-width:600px) {
             .wrap { padding:16px 16px 0; }
             header { flex-direction:column; align-items:flex-start; gap:12px; }
@@ -302,6 +314,9 @@
     </style>
 </head>
 <body>
+    <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
     <div class="wrap">
         <header class="s1">
             <div class="logo">
@@ -590,6 +605,20 @@
                         <span id="pwSubmitLabel">Change Password</span>
                     </button>
                 </div>
+                <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px;">
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:3px;">Disable Password Login</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);">Allow access without logging in, even while a password is set.</div>
+                        </div>
+                        <button class="toggle-btn" id="loginDisabledToggle" onclick="toggleLoginDisabled()" title="Toggle password login">
+                            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        </button>
+                    </div>
+                    <div id="loginDisabledWarning" style="display:none;font-size:0.72rem;color:var(--danger);padding:7px 10px;border:1px solid var(--danger);border-radius:6px;background:var(--danger-bg);margin-top:4px;">
+                        Anyone on your network can access the dashboard without a password.
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -657,8 +686,69 @@
                 </div>
             </div>
 
-            <!-- Tags Panel -->
+            <!-- Add Link Panel -->
             <div class="panel s5">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                    Add Link
+                </div>
+                <div class="dash-add-form" id="linkAddForm">
+                    <div class="fg">
+                        <label for="linkUrl">URL</label>
+                        <input type="url" id="linkUrl" placeholder="https://github.com" oninput="onLinkUrlInput()" autocomplete="off">
+                    </div>
+                    <div class="fg">
+                        <label for="linkName">Name <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dim)">(optional — uses domain if blank)</span></label>
+                        <input type="text" id="linkName" placeholder="e.g. GitHub" autocomplete="off">
+                    </div>
+                    <div class="fg cat-wrap">
+                        <label for="linkCategory">Category</label>
+                        <input type="text" id="linkCategory" placeholder="e.g. Tools" autocomplete="off"
+                               onfocus="catDropShow('linkCategory','linkCatDrop')"
+                               oninput="catDropFilter('linkCategory','linkCatDrop')"
+                               onblur="setTimeout(function(){catDropHide('linkCatDrop')},150)">
+                        <div class="cat-dropdown" id="linkCatDrop"></div>
+                    </div>
+                    <div class="fg">
+                        <label for="linkDescription">Description</label>
+                        <input type="text" id="linkDescription" placeholder="Short description (optional)" autocomplete="off">
+                    </div>
+                    <div class="dash-icon-row">
+                        <div class="dash-icon-preview" id="linkIconPreview">
+                            <div class="dash-icon-initials" id="linkIconInitials" style="background:#6366f1">?</div>
+                        </div>
+                        <div class="dash-icon-meta">
+                            <div class="dash-icon-status" id="linkIconStatus">Favicon fetched automatically from URL</div>
+                            <div class="dash-icon-btns">
+                                <label class="btn" style="cursor:pointer;padding:7px 14px;font-size:0.68rem;" title="Upload a custom icon">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                                    Upload Icon
+                                    <input type="file" id="linkIconFile" accept=".png,.jpg,.jpeg,.svg,.webp" style="display:none" onchange="uploadLinkIcon()">
+                                </label>
+                                <button class="btn" onclick="clearLinkIcon()" style="padding:7px 14px;font-size:0.68rem;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="fg" style="grid-column:1/-1">
+                        <label>Tags</label>
+                        <div class="dash-tag-picker" id="linkTagPicker">
+                            <span style="font-size:0.68rem;color:var(--text-muted)">No tags yet — create tags below first</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-save" onclick="addDashLink()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                        Add Link
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tags Panel -->
+            <div class="panel s6">
                 <div class="panel-label">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                     Tags
@@ -1244,6 +1334,7 @@
                 _allTags=await res.json();
                 renderTagsPanel();
                 renderTagPicker('dashTagPicker',_dashAddTags);
+                renderTagPicker('linkTagPicker',_linkAddTags);
             } catch(e) {}
         }
 
@@ -1450,7 +1541,7 @@
 
         function dashIconHtml(app) {
             var wrap='<div class="dash-tbl-icon">';
-            if (app.icon_type==='selfhst'||app.icon_type==='custom') {
+            if (app.icon_type==='selfhst'||app.icon_type==='custom'||app.icon_type==='favicon') {
                 wrap+='<img src="'+esc(app.icon_value)+'" alt="'+esc(app.name)+'" width="24" height="24" onerror="this.parentNode.innerHTML=\'<div class=dash-tbl-initials style=background:'+_colorForName(app.name)+'>\'+\''+_initials(app.name)+'\'+\'</div>\'">';
             } else {
                 wrap+='<div class="dash-tbl-initials" style="background:'+_colorForName(app.name)+'">'+esc(_initials(app.name))+'</div>';
@@ -1734,6 +1825,161 @@
             _editingDashId=null;
             dashLoadApps();
         }
+
+        /* ── AUTH SETTINGS (disable login toggle) ── */
+        var _loginDisabled = false;
+
+        async function loadAuthSettings() {
+            try {
+                var r = await fetch(API_BASE + '/api/auth-settings');
+                var d = await r.json();
+                _loginDisabled = !!d.login_disabled;
+                _applyLoginDisabledUI();
+            } catch(e) {}
+        }
+
+        function _applyLoginDisabledUI() {
+            var btn  = document.getElementById('loginDisabledToggle');
+            var warn = document.getElementById('loginDisabledWarning');
+            if (btn)  btn.classList.toggle('on', _loginDisabled);
+            if (warn) warn.style.display = _loginDisabled ? '' : 'none';
+        }
+
+        async function toggleLoginDisabled() {
+            _loginDisabled = !_loginDisabled;
+            _applyLoginDisabledUI();
+            try {
+                var res = await fetch(API_BASE + '/api/auth-settings', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({login_disabled: _loginDisabled})
+                });
+                if (!res.ok) throw new Error('Failed');
+                showStatus(_loginDisabled ? 'Password login disabled' : 'Password login enabled');
+            } catch(e) {
+                _loginDisabled = !_loginDisabled;
+                _applyLoginDisabledUI();
+                showError('Failed to update setting');
+            }
+        }
+
+        loadAuthSettings();
+
+        /* ── ADD LINK ── */
+        var _linkPendingIcon = {type:'initials', value:''};
+        var _linkUrlTimer    = null;
+        var _linkAddTags     = [];
+
+        function _getLinkDomain(url) {
+            try { return new URL(url).hostname.replace(/^www\./, ''); } catch(e) { return ''; }
+        }
+
+        function _getFaviconUrl(url) {
+            try {
+                var host = new URL(url).hostname;
+                return 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(host) + '&sz=64';
+            } catch(e) { return null; }
+        }
+
+        function setLinkIconPreview(icon, name) {
+            var preview = document.getElementById('linkIconPreview');
+            var status  = document.getElementById('linkIconStatus');
+            if (!preview) return;
+            preview.innerHTML = '';
+            if (icon && (icon.type === 'favicon' || icon.type === 'custom')) {
+                var img = document.createElement('img');
+                img.src = icon.value; img.alt = name || '';
+                img.onerror = function() { setLinkIconPreview(null, name); };
+                preview.appendChild(img);
+                if (status) { status.className = 'dash-icon-status found'; status.textContent = icon.type === 'custom' ? 'Custom icon uploaded' : 'Favicon fetched'; }
+            } else {
+                var n = name || '?';
+                var init = document.createElement('div');
+                init.className = 'dash-icon-initials';
+                init.style.background = _colorForName(n);
+                init.textContent = _initials(n);
+                preview.appendChild(init);
+                if (status) { status.className = 'dash-icon-status'; status.textContent = name ? 'No favicon found — showing initials' : 'Favicon fetched automatically from URL'; }
+            }
+        }
+
+        function onLinkUrlInput() {
+            var url = (document.getElementById('linkUrl').value || '').trim();
+            if (!url) {
+                _linkPendingIcon = {type:'initials', value:''};
+                setLinkIconPreview(null, '');
+                return;
+            }
+            clearTimeout(_linkUrlTimer);
+            _linkUrlTimer = setTimeout(async function() {
+                if (_linkPendingIcon.type === 'custom') return;
+                var favUrl = _getFaviconUrl(url);
+                var name   = _getLinkDomain(url);
+                if (!favUrl) { _linkPendingIcon = {type:'initials',value:''}; setLinkIconPreview(null, name); return; }
+                var status = document.getElementById('linkIconStatus');
+                if (status) { status.className = 'dash-icon-status searching'; status.textContent = 'Fetching favicon…'; }
+                var ok = await tryIconLoad(favUrl);
+                if (ok) {
+                    _linkPendingIcon = {type:'favicon', value:favUrl};
+                    setLinkIconPreview(_linkPendingIcon, name);
+                } else {
+                    _linkPendingIcon = {type:'initials', value:''};
+                    setLinkIconPreview(null, name);
+                }
+            }, 400);
+        }
+
+        async function uploadLinkIcon() {
+            var file = document.getElementById('linkIconFile').files[0];
+            if (!file) return;
+            var fd = new FormData(); fd.append('file', file);
+            var status = document.getElementById('linkIconStatus');
+            if (status) { status.className = 'dash-icon-status searching'; status.textContent = 'Uploading…'; }
+            try {
+                var res  = await fetch(API_BASE + '/api/dashboard/upload-icon', {method:'POST', body:fd});
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Upload failed');
+                _linkPendingIcon = {type:'custom', value:data.url};
+                var name = (document.getElementById('linkName').value || '').trim() || _getLinkDomain(document.getElementById('linkUrl').value || '') || 'Link';
+                setLinkIconPreview(_linkPendingIcon, name);
+            } catch(e) { showError('Upload failed: ' + e.message); }
+        }
+
+        function clearLinkIcon() {
+            _linkPendingIcon = {type:'initials', value:''};
+            document.getElementById('linkIconFile').value = '';
+            var name = _getLinkDomain((document.getElementById('linkUrl').value || '').trim());
+            setLinkIconPreview(null, name);
+        }
+
+        async function addDashLink() {
+            var url  = (document.getElementById('linkUrl').value  || '').trim();
+            var name = (document.getElementById('linkName').value || '').trim();
+            var cat  = (document.getElementById('linkCategory').value    || '').trim();
+            var desc = (document.getElementById('linkDescription').value || '').trim();
+            if (!url) { showError('Enter a URL'); return; }
+            if (!name) name = _getLinkDomain(url) || url;
+            try {
+                var res = await fetch(API_BASE + '/api/dashboard/apps', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({name:name, url:url, icon_type:_linkPendingIcon.type, icon_value:_linkPendingIcon.value||'', category:cat, description:desc, tags:_linkAddTags.slice()})
+                });
+                if (!res.ok) throw new Error('Failed');
+                document.getElementById('linkUrl').value         = '';
+                document.getElementById('linkName').value        = '';
+                document.getElementById('linkCategory').value    = '';
+                document.getElementById('linkDescription').value = '';
+                _linkPendingIcon = {type:'initials', value:''}; _linkAddTags = [];
+                setLinkIconPreview(null, '');
+                renderTagPicker('linkTagPicker', _linkAddTags);
+                showStatus('Link added');
+                dashLoadApps();
+            } catch(e) { showError('Error: ' + e.message); }
+        }
+
+        /* ── BACK TO TOP ── */
+        window.addEventListener('scroll', function() {
+            document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 300);
+        });
 
         loadConfig();
         fetch(API_BASE + '/api/version').then(function(r) { return r.json(); }).then(function(d) {

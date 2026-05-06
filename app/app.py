@@ -87,6 +87,8 @@ class StatusBody(BaseModel):
     items:List[StatusItem]
 class DashboardReorder(BaseModel):
     order:List[int]
+class AuthSettings(BaseModel):
+    login_disabled:bool
 
 def db():
     try: return mysql.connector.connect(**_db_cfg())
@@ -109,6 +111,10 @@ def init():
     row = cur.fetchone()
     if row and row[0]:
         auth.ADMIN_HASH = row[0]
+    cur.execute("SELECT value FROM admin_config WHERE `key`='login_disabled'")
+    row = cur.fetchone()
+    if row and row[0] == '1':
+        auth.LOGIN_DISABLED = True
     cur.execute("""CREATE TABLE IF NOT EXISTS proxmox_hosts (
         id INT AUTO_INCREMENT PRIMARY KEY,
         label VARCHAR(100) NOT NULL,
@@ -511,6 +517,29 @@ async def set_subtitle(body: SubtitleBody):
 @app.get("/api/has-password")
 async def has_password():
     return {"has_password": bool(auth.ADMIN_HASH)}
+
+@app.get("/api/auth-settings")
+async def get_auth_settings():
+    c = db()
+    if not c: return {"login_disabled": auth.LOGIN_DISABLED}
+    cur = c.cursor()
+    cur.execute("SELECT value FROM admin_config WHERE `key`='login_disabled'")
+    row = cur.fetchone()
+    cur.close(); c.close()
+    return {"login_disabled": row[0] == "1" if row else False}
+
+@app.post("/api/auth-settings")
+async def set_auth_settings(body: AuthSettings):
+    val = "1" if body.login_disabled else "0"
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute(
+        "INSERT INTO admin_config(`key`, value) VALUES('login_disabled', %s) ON DUPLICATE KEY UPDATE value=%s",
+        (val, val))
+    c.commit(); cur.close(); c.close()
+    auth.LOGIN_DISABLED = body.login_disabled
+    return {"status": "ok"}
 
 @app.post("/api/change-password")
 async def change_password(body: PwChange):

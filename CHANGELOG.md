@@ -11,6 +11,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-05-07
+
+### Added
+- **Add Link** — new panel in Dashboard settings for bookmarking any URL; favicon is fetched automatically from the site (with upload fallback for sites that don't serve one); links appear on the dashboard alongside applications with the same tile layout and live status checking
+- **Disable Password Login** — toggle in Settings → System → Password Management; allows open access to the dashboard even while a password is set, without losing the password; shows a warning when active
+- **Scroll to top button** — floating chevron button appears on the Settings page after scrolling down, matching the same button on the Network and Proxmox pages
+- **Screenshots** — dark and light theme screenshots added to the repository and README
+
+### Fixed
+- **Category header line too wide** — the gray separator line next to category names on the dashboard now caps its width to the right edge of the tile grid; on pages with few tiles the line no longer extends all the way to the screen edge
+
+---
+
 ## [1.3.3] — 2026-05-06
 
 ### Fixed

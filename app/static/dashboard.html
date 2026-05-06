@@ -295,7 +295,7 @@
 
             var iconWrap = document.createElement('div');
             iconWrap.className = 'tile-icon-wrap';
-            if (app.icon_type === 'selfhst' || app.icon_type === 'custom') {
+            if (app.icon_type === 'selfhst' || app.icon_type === 'custom' || app.icon_type === 'favicon') {
                 var img = document.createElement('img');
                 img.src = app.icon_value; img.alt = app.name;
                 img.onerror = function() {
@@ -445,10 +445,17 @@
             requestAnimationFrame(function() {
                 document.querySelectorAll('.dash-group').forEach(function(group) {
                     var hd = group.querySelector('.dash-cat-hd');
-                    var firstTile = group.querySelector('.app-tile');
-                    if (!hd || !firstTile) return;
-                    var pad = firstTile.getBoundingClientRect().left - group.getBoundingClientRect().left;
+                    var tiles = group.querySelectorAll('.app-tile');
+                    if (!hd || !tiles.length) return;
+                    var groupLeft = group.getBoundingClientRect().left;
+                    var pad = tiles[0].getBoundingClientRect().left - groupLeft;
                     hd.style.paddingLeft = Math.max(0, pad) + 'px';
+                    var maxRight = 0;
+                    tiles.forEach(function(t) {
+                        var r = t.getBoundingClientRect().right;
+                        if (r > maxRight) maxRight = r;
+                    });
+                    hd.style.maxWidth = (maxRight - groupLeft) + 'px';
                 });
             });
         }

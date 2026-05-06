@@ -12,6 +12,7 @@ ADMIN_HASH   = os.getenv("LT_ADMIN_HASH", "")
 
 COOKIE_NAME    = "lt_session"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
+LOGIN_DISABLED = False
 
 router     = APIRouter()
 _serial    = URLSafeTimedSerializer(SECRET_KEY)
@@ -42,6 +43,8 @@ def is_authenticated(request: Request) -> bool:
     if not AUTH_ENABLED:
         return True
     if not ADMIN_HASH:
+        return True
+    if LOGIN_DISABLED:
         return True
     token = request.cookies.get(COOKIE_NAME)
     return bool(token and _check_token(token))

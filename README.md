@@ -4,7 +4,7 @@
 
 # HomeLab Sonar
 
-**Self-hosted LAN scanner, IP manager, and home lab dashboard — know every device on your network.**
+**Self-hosted LAN scanner, network monitor, Proxmox dashboard, and app launcher — everything your home lab needs in one place.**
 
 [![Release](https://img.shields.io/github/v/release/Mati-l33t/lan-tracker-network-sonar?style=flat-square&color=4f9eff)](https://github.com/Mati-l33t/lan-tracker-network-sonar/releases)
 [![License](https://img.shields.io/github/license/Mati-l33t/lan-tracker-network-sonar?style=flat-square&color=4f9eff)](LICENSE)
@@ -14,16 +14,31 @@
 
 ---
 
+## Screenshots
+
+<div align="center">
+
+<img src="docs/screenshots/homelab-sonar-dark.png" alt="Dashboard — dark theme" width="49%"> <img src="docs/screenshots/homelab-sonar-dark2.png" alt="Network view — dark theme" width="49%">
+
+<img src="docs/screenshots/homelab-sonar-dark3.png" alt="Proxmox monitor — dark theme" width="49%"> <img src="docs/screenshots/homelab-sonar-light.png" alt="Dashboard — light theme" width="49%">
+
+<img src="docs/screenshots/homelab-sonar-light2.png" alt="Network view — light theme" width="49%"> <img src="docs/screenshots/homelab-sonar-light3.png" alt="Settings — light theme" width="49%">
+
+</div>
+
+---
+
 ## Features
 
+- **Application dashboard** — self-hosted app launcher and link board with favicons, selfhst icons, categories, tags, drag-and-drop ordering, and live ONLINE/OFFLINE status badges
 - **Live network scan** — discovers all active devices via ARP with vendor lookup
 - **IP address management** — static & DHCP ranges, free IP tracking, custom device names
 - **Device details** — MAC address, hostname, vendor, ping latency, open ports
-- **7-day uptime sparklines** — visual history per device
+- **7-day uptime sparklines** — visual activity history per device
 - **Proxmox monitoring** — real-time CPU, RAM, swap, disk, and network I/O per node; VM/LXC power control; backup viewer
-- **Application dashboard** — self-hosted app launcher with icons, categories, tags, drag-and-drop ordering, and live status badges
-- **Dark / Light theme** — persistent across sessions
 - **Network map** — visual topology of discovered devices
+- **Dark / Light theme** — persistent across sessions
+- **Password protection** — optional login; enable or disable without losing your password
 - **One-command install** — single line for Debian/Ubuntu; Proxmox LXC installer included
 - **Auto-restart** — runs as a systemd service, survives reboots
 
@@ -52,6 +67,8 @@ After installation the app is accessible to anyone on your network with no passw
 
 Open the app in your browser, go to **Settings → System → Password Management** and set your password directly in the UI — no current password required on first setup.
 
+You can also toggle **Disable Password Login** in that same panel to allow open access even when a password is set — useful for trusted home networks.
+
 Alternatively, set the password from the command line on the server:
 
 ```bash
@@ -64,7 +81,7 @@ Then restart the service:
 systemctl restart lan-tracker
 ```
 
-Once a password is set, the login page will be shown on every visit.
+Once a password is set, the login page will be shown on every visit (unless login is disabled in settings).
 
 ---
 
