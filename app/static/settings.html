@@ -567,8 +567,11 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                     Password Management
                 </div>
+                <div id="pwNoPasswordNote" style="display:none;font-size:0.78rem;color:var(--accent);margin-bottom:12px;padding:8px 12px;border:1px solid var(--accent);border-radius:8px;background:var(--accent-glow);">
+                    No password set — the app is currently open to anyone on your network. Set a password below.
+                </div>
                 <div class="cfg-grid" style="max-width:560px;">
-                    <div class="fg">
+                    <div class="fg" id="currentPwRow">
                         <label for="currentPw">Current Password</label>
                         <input type="password" id="currentPw" placeholder="Enter current password" autocomplete="current-password">
                     </div>
@@ -582,9 +585,9 @@
                     </div>
                 </div>
                 <div class="btn-row">
-                    <button class="btn btn-save" onclick="changePassword()">
+                    <button class="btn btn-save" onclick="changePassword()" id="pwSubmitBtn">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                        Change Password
+                        <span id="pwSubmitLabel">Change Password</span>
                     </button>
                 </div>
             </div>
@@ -1060,11 +1063,27 @@
         }
 
         /* ── PASSWORD ── */
+        var _hasPassword = true;
+
+        async function loadPasswordState() {
+            try {
+                var r = await fetch('/api/has-password');
+                var d = await r.json();
+                _hasPassword = d.has_password;
+                if (!_hasPassword) {
+                    document.getElementById('currentPwRow').style.display = 'none';
+                    document.getElementById('pwNoPasswordNote').style.display = '';
+                    document.getElementById('pwSubmitLabel').textContent = 'Set Password';
+                }
+            } catch(e) {}
+        }
+        loadPasswordState();
+
         async function changePassword() {
             var currentPw = document.getElementById('currentPw').value;
             var newPw     = document.getElementById('newPw').value;
             var confirmPw = document.getElementById('confirmPw').value;
-            if (!currentPw) { showError('Enter your current password'); return; }
+            if (_hasPassword && !currentPw) { showError('Enter your current password'); return; }
             if (!newPw)     { showError('Enter a new password'); return; }
             if (newPw.length < 8) { showError('New password must be at least 8 characters'); return; }
             if (newPw !== confirmPw) { showError('New passwords do not match'); return; }
@@ -1075,10 +1094,16 @@
                 });
                 var data = await res.json();
                 if (res.ok && data.status === 'ok') {
-                    showStatus('Password changed successfully');
+                    showStatus(_hasPassword ? 'Password changed successfully' : 'Password set successfully');
                     document.getElementById('currentPw').value = '';
                     document.getElementById('newPw').value     = '';
                     document.getElementById('confirmPw').value = '';
+                    if (!_hasPassword) {
+                        _hasPassword = true;
+                        document.getElementById('currentPwRow').style.display = '';
+                        document.getElementById('pwNoPasswordNote').style.display = 'none';
+                        document.getElementById('pwSubmitLabel').textContent = 'Change Password';
+                    }
                 } else {
                     showError(data.detail || data.message || 'Password change failed');
                 }

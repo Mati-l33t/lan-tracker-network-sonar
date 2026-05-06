@@ -46,6 +46,28 @@ The installer will:
 
 ---
 
+## First Login & Password Setup
+
+After installation the app is accessible to anyone on your network with no password. **Set a password immediately** after install.
+
+Open the app in your browser, go to **Settings → System → Password Management** and set your password directly in the UI — no current password required on first setup.
+
+Alternatively, set the password from the command line on the server:
+
+```bash
+python3 /opt/lan-tracker/scripts/set-password.py
+```
+
+Then restart the service:
+
+```bash
+systemctl restart lan-tracker
+```
+
+Once a password is set, the login page will be shown on every visit.
+
+---
+
 ## Proxmox LXC Install
 
 Run on your **Proxmox VE host** (not inside a VM or container):

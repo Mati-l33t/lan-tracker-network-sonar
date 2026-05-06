@@ -20,7 +20,7 @@ VERSION_FILE = BASE_DIR.parent / "VERSION"
 app = FastAPI()
 
 # ── Auth middleware ────────────────────────────────────────────────────────────
-_UNPROTECTED = {"/login", "/logout", "/static/login.html", "/static/logo.png", "/static/favicon.ico", "/api/subtitle"}
+_UNPROTECTED = {"/login", "/logout", "/static/login.html", "/static/logo.png", "/static/favicon.ico", "/api/subtitle", "/api/has-password"}
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
@@ -508,9 +508,13 @@ async def set_subtitle(body: SubtitleBody):
     c.commit(); cur.close(); c.close()
     return {"status": "ok"}
 
+@app.get("/api/has-password")
+async def has_password():
+    return {"has_password": bool(auth.ADMIN_HASH)}
+
 @app.post("/api/change-password")
 async def change_password(body: PwChange):
-    if not auth.verify_password(body.currentPassword):
+    if auth.ADMIN_HASH and not auth.verify_password(body.currentPassword):
         raise HTTPException(400, "Current password is incorrect")
     if len(body.newPassword) < 8:
         raise HTTPException(400, "New password must be at least 8 characters")
