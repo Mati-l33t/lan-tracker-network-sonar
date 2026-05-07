@@ -1,6 +1,34 @@
 #!/usr/bin/env python3
-import os, asyncio, ipaddress, logging, bcrypt, uuid, json
+import os, asyncio, ipaddress, logging, bcrypt, uuid, json, collections, secrets
 logger = logging.getLogger(__name__)
+
+_LOG_BUFFER = collections.deque(maxlen=200)
+
+_OWN_LOGGERS = {"app", "auth", "proxmox_client", "proxmox_routes", "__main__"}
+
+class _BufHandler(logging.Handler):
+    def emit(self, record):
+        if record.name.split(".")[0] not in _OWN_LOGGERS:
+            return
+        try:
+            msg = record.getMessage()
+            if record.exc_info and record.exc_info[0] is not None:
+                exc_name = record.exc_info[0].__name__
+                exc_val  = str(record.exc_info[1])
+                msg += f" [{exc_name}: {exc_val}]" if exc_val else f" [{exc_name}]"
+            _LOG_BUFFER.append({
+                "ts":    record.created,
+                "level": record.levelname,
+                "name":  record.name.split(".")[-1],
+                "msg":   msg,
+            })
+        except Exception:
+            pass
+
+_buf_handler = _BufHandler(logging.INFO)
+logging.getLogger().addHandler(_buf_handler)
+logging.getLogger().setLevel(logging.INFO)
+
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, RedirectResponse
@@ -56,7 +84,7 @@ def _detect_defaults():
                 if not net_str.startswith("127."):
                     return {"subnet": net_str}
     except Exception:
-        pass
+        logger.debug("Network interface detection failed")
     return {"subnet": ""}
 
 _detected_subnet = _detect_defaults().get("subnet", "")
@@ -91,8 +119,11 @@ class AuthSettings(BaseModel):
     login_disabled:bool
 
 def db():
-    try: return mysql.connector.connect(**_db_cfg())
-    except: return None
+    try:
+        return mysql.connector.connect(**_db_cfg())
+    except Exception:
+        logger.error("Database connection failed")
+        return None
 
 def init():
     c = db()
@@ -181,8 +212,11 @@ def save_cfg(subnet, ss, se, ds, de):
 def ip2int(ip): return struct.unpack("!I", socket.inet_aton(ip))[0]
 def ips_range(s, e):
     if not s or not e: return []
-    try: return [socket.inet_ntoa(struct.pack("!I", i)) for i in range(ip2int(s), ip2int(e)+1)]
-    except: return []
+    try:
+        return [socket.inet_ntoa(struct.pack("!I", i)) for i in range(ip2int(s), ip2int(e)+1)]
+    except Exception:
+        logger.debug("ips_range(%s, %s) failed", s, e)
+        return []
 
 def scan(subnet):
     try:
@@ -199,12 +233,13 @@ def scan(subnet):
             m = re.match(r"^(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F:]{17})\s+(.+)$", l)
             if m: devs.append({"ip":m.group(1),"mac":m.group(2).lower(),"vendor":m.group(3).strip()})
         return devs
-    except Exception as e:
-        print(e); return []
+    except Exception:
+        logger.exception("arp-scan failed")
+        return []
 
 def hostname(ip):
     try: return socket.gethostbyaddr(ip)[0]
-    except: return ""
+    except Exception: return ""
 
 def ping_host(ip):
     try:
@@ -214,7 +249,7 @@ def ping_host(ip):
                 if 'time=' in line:
                     return round(float(line.split('time=')[1].split()[0]), 1)
         return None
-    except: return None
+    except Exception: return None
 
 def scan_ports(ip):
     common_ports = [21,22,23,25,53,80,110,443,3389,8080]
@@ -225,7 +260,7 @@ def scan_ports(ip):
             open_ = s.connect_ex((ip, port)) == 0
             s.close()
             return port if open_ else None
-        except: return None
+        except Exception: return None
     with ThreadPoolExecutor(max_workers=10) as ex:
         return [p for p in ex.map(check, common_ports) if p is not None]
 
@@ -235,7 +270,8 @@ def ip_type(ip, ss, se, ds, de):
         n = ip2int(ip)
         if ip2int(ss) <= n <= ip2int(se): return "static"
         if ip2int(ds) <= n <= ip2int(de): return "dhcp"
-    except: pass
+    except Exception:
+        logger.debug("ip_type error for %s", ip)
     return "dhcp"
 
 def enrich(d, cfg):
@@ -336,7 +372,7 @@ pvc.set_hosts_getter(_get_proxmox_hosts)
 async def get_version():
     try:
         return {"version": VERSION_FILE.read_text().strip()}
-    except:
+    except Exception:
         return {"version": "unknown"}
 
 @app.get("/api/check-update")
@@ -433,8 +469,10 @@ async def get_status(): return status()
 @app.post("/api/scan")
 async def do_scan():
     cfg  = get_cfg()
+    logger.info("Manual network scan started")
     devs = scan(cfg["subnet"])
     update_devs(devs, cfg)
+    logger.info("Scan complete — %d device(s) found", len(devs))
     return {"status": "ok", "found": len(devs)}
 
 @app.post("/api/device/name")
@@ -627,8 +665,17 @@ async def delete_dashboard_app(app_id: int):
     cur.execute("DELETE FROM dashboard_apps WHERE id=%s", (app_id,))
     c.commit(); cur.close(); c.close()
     if row and row[0] == "custom" and row[1]:
-        try: (BASE_DIR / row[1].lstrip("/")).unlink(missing_ok=True)
-        except: pass
+        icons_dir = (BASE_DIR / "static" / "uploads" / "icons").resolve()
+        icon_path = (BASE_DIR / row[1].lstrip("/")).resolve()
+        try:
+            icon_path.relative_to(icons_dir)
+        except ValueError:
+            logger.warning("Rejected out-of-bounds icon path: %s", row[1])
+        else:
+            try:
+                icon_path.unlink(missing_ok=True)
+            except OSError:
+                logger.warning("Failed to delete dashboard icon: %s", row[1])
     return {"ok": True}
 
 @app.post("/api/dashboard/upload-icon")
@@ -695,7 +742,8 @@ async def delete_dashboard_tag(tag_id: int):
                 tags = [t for t in tags if t != tag_id]
                 cur.execute("UPDATE dashboard_apps SET tags=%s WHERE id=%s",
                             (json.dumps(tags) if tags else None, row_id))
-        except: pass
+        except Exception:
+            logger.warning("Failed to update tags for app %s after tag delete", row_id)
     c.commit(); cur.close(); c.close()
     return {"ok": True}
 
@@ -707,10 +755,14 @@ async def check_dashboard_status(body: StatusBody):
             async with httpx.AsyncClient(verify=False, timeout=3.0, follow_redirects=True) as c:
                 await c.head(item.url)
             return {"id": item.id, "online": True}
-        except:
+        except Exception:
             return {"id": item.id, "online": False}
     results = await asyncio.gather(*[_check(i) for i in body.items])
     return list(results)
+
+@app.get("/api/logs")
+async def get_logs(since: float = 0):
+    return [e for e in _LOG_BUFFER if e["ts"] > since]
 
 @app.post("/api/device/ack")
 async def ack_device(d: IpOnly):
@@ -727,15 +779,25 @@ async def _daily_scan_loop():
     while True:
         try:
             cfg  = get_cfg()
+            logger.info("Daily auto-scan started")
             devs = scan(cfg["subnet"])
             update_devs(devs, cfg)
+            logger.info("Daily auto-scan complete — %d device(s) found", len(devs))
         except Exception as e:
             logger.error(f"Auto-scan failed: {e}")
         await asyncio.sleep(86400)  # 24 hours
 
 @app.on_event("startup")
 async def on_startup():
+    if _buf_handler not in logging.getLogger().handlers:
+        logging.getLogger().addHandler(_buf_handler)
+        logging.getLogger().setLevel(logging.INFO)
     init()
+    try:
+        version = VERSION_FILE.read_text().strip()
+    except Exception:
+        version = "unknown"
+    logger.info("HomeLab Sonar v%s started", version)
     asyncio.create_task(pvc.start_polling_loop(interval=30))
     asyncio.create_task(_daily_scan_loop())
 

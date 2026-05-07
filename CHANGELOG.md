@@ -11,6 +11,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.0] — 2026-05-08
+
+### Added
+- **Category collapse** — category headers on the dashboard are now clickable; click to collapse or expand the tile group; collapsed state persists per-category via `localStorage` across page reloads
+- **System Logs panel** — Settings → System now includes a live log viewer showing application events (startup, scans, login attempts, errors); polls every 3 seconds; filterable by level (All / Warnings+ / Errors); in-memory ring buffer of 200 entries
+
+### Security
+- **Path traversal in icon delete** — `icon_value` from the database was passed directly to `Path.unlink()` with no validation; a crafted value such as `../../etc/cron.d/file` could delete arbitrary files outside the uploads directory; resolved path is now checked to be inside `static/uploads/icons/` before any file is removed
+- **Insecure default session key** — `LT_SECRET_KEY` fell back to the hardcoded string `"changeme"`, allowing anyone to forge a valid session cookie; the app now generates a cryptographically random key at startup if `LT_SECRET_KEY` is missing or is the default, and logs a warning; the installer already writes a unique key so existing installs are unaffected
+- **Silent exception swallowing** — bare `except: pass` blocks in the scanner, database, and file-management code replaced with typed `except Exception:` and structured log calls; failures in `scan()`, `db()`, `hostname()`, `ping_host()`, port scanning, and icon file operations are now visible in logs and in the Settings log viewer
+
+---
+
 ## [1.4.0] — 2026-05-07
 
 ### Added

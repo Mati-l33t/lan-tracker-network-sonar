@@ -620,6 +620,33 @@
                     </div>
                 </div>
             </div>
+
+            <!-- SYSTEM LOGS -->
+            <div class="panel s6">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    System Logs
+                    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+                        <select id="logLevelFilter" onchange="filterLogs()" style="background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:4px 8px;color:var(--text-muted);font-family:'Chakra Petch',sans-serif;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;outline:none;">
+                            <option value="INFO">All</option>
+                            <option value="WARNING">Warnings+</option>
+                            <option value="ERROR">Errors</option>
+                        </select>
+                        <button class="btn" onclick="clearLogDisplay()" style="padding:4px 12px;font-size:0.6rem;">Clear</button>
+                    </div>
+                </div>
+                <div id="logContainer" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;height:300px;overflow-y:auto;padding:8px 10px;font-family:'Courier Prime',monospace;font-size:0.73rem;line-height:1.65;">
+                    <div id="logEntries"></div>
+                    <div id="logEmpty" style="color:var(--text-muted);text-align:center;padding:50px 0;font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;">No log entries yet</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px;">
+                    <span id="logCount" style="font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;"></span>
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <span id="logLiveDot" style="width:6px;height:6px;border-radius:50%;background:var(--active);display:inline-block;opacity:0.5;transition:opacity 0.3s;"></span>
+                        <span style="font-size:0.58rem;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;">Live</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ══ DASHBOARD SECTION ══ -->
@@ -926,6 +953,7 @@
             });
             if (sec === 'proxmox')   pveLoadHosts();
             if (sec === 'dashboard') { dashLoadTags(); dashLoadApps(); }
+            if (sec === 'system')    initLogViewerOnce();
             history.replaceState(null, '', '/settings#' + sec);
         }
 
@@ -1981,7 +2009,110 @@
             document.getElementById('backToTop').classList.toggle('visible', window.scrollY > 300);
         });
 
+        /* ── SYSTEM LOG VIEWER ── */
+        var _logAllEntries   = [];
+        var _logLastTs       = 0;
+        var _logPollTimer    = null;
+        var _logInitialized  = false;
+        var _logUserScrolled = false;
+
+        var _LOG_RANK   = { DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50 };
+        var _LOG_COLORS = { INFO:'var(--text-muted)', WARNING:'var(--accent2)', ERROR:'var(--danger)', CRITICAL:'var(--danger)' };
+        var _LOG_BG     = { INFO:'transparent', WARNING:'rgba(245,158,11,0.06)', ERROR:'rgba(244,63,94,0.08)', CRITICAL:'rgba(244,63,94,0.12)' };
+        var _LEVEL_W    = { INFO:'34px', WARNING:'58px', ERROR:'40px', CRITICAL:'54px' };
+
+        function _fmtLogTs(ts) {
+            var d = new Date(ts * 1000);
+            return d.toLocaleTimeString('en-GB', { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        }
+        function _escLog(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+        function _makeLogRow(e) {
+            var color = _LOG_COLORS[e.level] || 'var(--text-muted)';
+            var bg    = _LOG_BG[e.level]    || 'transparent';
+            var w     = _LEVEL_W[e.level]   || '40px';
+            var div   = document.createElement('div');
+            div.style.cssText = 'padding:1px 5px;border-radius:3px;background:' + bg + ';display:flex;align-items:baseline;gap:7px;min-width:0;';
+            div.innerHTML =
+                '<span style="color:var(--text-dim);flex-shrink:0;font-size:0.68rem;user-select:none;">' + _fmtLogTs(e.ts) + '</span>' +
+                '<span style="display:inline-block;width:' + w + ';text-align:center;padding:0 3px;border-radius:3px;border:1px solid ' + color + ';color:' + color + ';font-size:0.58rem;font-weight:700;letter-spacing:0.05em;flex-shrink:0;font-family:\'Chakra Petch\',sans-serif;">' + e.level + '</span>' +
+                '<span style="color:var(--accent);font-size:0.65rem;flex-shrink:0;opacity:0.6;">[' + _escLog(e.name) + ']</span>' +
+                '<span style="color:' + color + ';word-break:break-word;min-width:0;">' + _escLog(e.msg) + '</span>';
+            return div;
+        }
+        function _getMinLevel() {
+            var sel = document.getElementById('logLevelFilter');
+            return sel ? (sel.value || 'INFO') : 'INFO';
+        }
+        function _passesFilter(e) {
+            return (_LOG_RANK[e.level] || 0) >= (_LOG_RANK[_getMinLevel()] || 0);
+        }
+        function filterLogs() {
+            var container = document.getElementById('logEntries');
+            var empty     = document.getElementById('logEmpty');
+            if (!container) return;
+            container.innerHTML = '';
+            var visible = _logAllEntries.filter(_passesFilter);
+            visible.forEach(function(e) { container.appendChild(_makeLogRow(e)); });
+            if (empty) empty.style.display = visible.length ? 'none' : 'block';
+            _logScrollBottom(true);
+        }
+        function clearLogDisplay() {
+            _logAllEntries = []; _logLastTs = 0;
+            var container = document.getElementById('logEntries');
+            var empty     = document.getElementById('logEmpty');
+            var countEl   = document.getElementById('logCount');
+            if (container) container.innerHTML = '';
+            if (empty)     empty.style.display = 'block';
+            if (countEl)   countEl.textContent = '';
+        }
+        function _logScrollBottom(force) {
+            var box = document.getElementById('logContainer');
+            if (!box) return;
+            if (force || !_logUserScrolled) box.scrollTop = box.scrollHeight;
+        }
+        async function _logPoll() {
+            try {
+                var r = await fetch(API_BASE + '/api/logs?since=' + _logLastTs);
+                if (!r.ok) return;
+                var entries = await r.json();
+                if (!entries.length) return;
+                var container = document.getElementById('logEntries');
+                var empty     = document.getElementById('logEmpty');
+                var countEl   = document.getElementById('logCount');
+                var liveDot   = document.getElementById('logLiveDot');
+                if (!container) return;
+                entries.forEach(function(e) {
+                    _logAllEntries.push(e);
+                    if (e.ts > _logLastTs) _logLastTs = e.ts;
+                    if (_passesFilter(e)) {
+                        container.appendChild(_makeLogRow(e));
+                        if (empty) empty.style.display = 'none';
+                    }
+                });
+                while (_logAllEntries.length > 1000) _logAllEntries.shift();
+                while (container.children.length > 500) container.removeChild(container.firstChild);
+                if (countEl) countEl.textContent = _logAllEntries.length + ' entries';
+                if (liveDot) { liveDot.style.opacity='1'; setTimeout(function(){ if(liveDot) liveDot.style.opacity='0.5'; }, 400); }
+                _logScrollBottom(false);
+            } catch(ex) {}
+        }
+        function initLogViewerOnce() {
+            if (_logInitialized) return;
+            _logInitialized = true;
+            var box = document.getElementById('logContainer');
+            if (box) {
+                box.addEventListener('scroll', function() {
+                    _logUserScrolled = (box.scrollHeight - box.scrollTop - box.clientHeight) > 60;
+                });
+            }
+            _logPoll();
+            _logPollTimer = setInterval(_logPoll, 3000);
+        }
+
         loadConfig();
+        initLogViewerOnce();
         fetch(API_BASE + '/api/version').then(function(r) { return r.json(); }).then(function(d) {
             var el = document.getElementById('appVersion');
             var sv = document.getElementById('sysCurrentVer');

@@ -1,14 +1,26 @@
+import logging
 import os
+import secrets
 import bcrypt
 from pathlib import Path
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+_log = logging.getLogger(__name__)
+
 _STATIC_DIR  = Path(__file__).parent / "static"
-SECRET_KEY   = os.getenv("LT_SECRET_KEY", "changeme")
 AUTH_ENABLED = os.getenv("LT_AUTH_ENABLED", "true").lower() == "true"
 ADMIN_HASH   = os.getenv("LT_ADMIN_HASH", "")
+
+SECRET_KEY = os.getenv("LT_SECRET_KEY", "")
+if not SECRET_KEY or SECRET_KEY.strip().lower() == "changeme":
+    _log.warning(
+        "LT_SECRET_KEY is not set or is the insecure default — generating a temporary "
+        "random key. Sessions will not survive restarts. Set LT_SECRET_KEY in "
+        "/etc/lan-tracker/lan-tracker.conf"
+    )
+    SECRET_KEY = secrets.token_hex(32)
 
 COOKIE_NAME    = "lt_session"
 COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
@@ -60,9 +72,11 @@ async def login_page(request: Request):
 @router.post("/login")
 async def login_submit(request: Request, password: str = Form(...)):
     if verify_password(password):
+        _log.info("Admin login successful")
         resp = RedirectResponse("/", status_code=302)
         resp.set_cookie(COOKIE_NAME, _make_token(), max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
         return resp
+    _log.warning("Failed login attempt from %s", request.client.host if request.client else "unknown")
     return RedirectResponse("/login?error=1", status_code=302)
 
 

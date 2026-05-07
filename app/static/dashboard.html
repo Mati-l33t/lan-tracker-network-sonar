@@ -88,8 +88,15 @@
             font-size:0.58rem; font-weight:600; letter-spacing:0.28em; text-transform:uppercase;
             color:var(--text-muted); margin-bottom:10px;
             display:flex; align-items:center; gap:10px;
+            cursor:pointer; user-select:none;
         }
         .dash-cat-hd::after { content:''; flex:1; height:1px; background:var(--border); opacity:0.5; }
+        .dash-cat-hd:hover { color:var(--text); }
+        .dash-cat-hd:hover .cat-chevron { color:var(--accent); }
+        .cat-chevron { display:inline-flex; align-items:center; color:var(--text-dim); transition:transform 0.25s ease, color 0.2s; }
+        .dash-group.cat-collapsed .cat-chevron { transform:rotate(-90deg); }
+        .dash-group.cat-collapsed { margin-bottom:14px; }
+        .dash-grid { transition:height 0.28s ease; }
 
         /* ── APP TILE (horizontal, mafl-style) ── */
         .app-tile {
@@ -427,11 +434,22 @@
                     }
                     catKeys.forEach(function(cat) {
                         var group = document.createElement('div'); group.className = 'dash-group';
-                        var hd = document.createElement('div'); hd.className = 'dash-cat-hd'; hd.textContent = cat;
+                        var hd = document.createElement('div'); hd.className = 'dash-cat-hd';
+                        hd.appendChild(document.createTextNode(cat));
+                        var chev = document.createElement('span'); chev.className = 'cat-chevron';
+                        chev.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+                        hd.appendChild(chev);
                         group.appendChild(hd);
                         var grid = document.createElement('div'); grid.className = 'dash-grid';
                         cats[cat].forEach(function(app) { grid.appendChild(renderTile(app, idx++)); });
-                        group.appendChild(grid); content.appendChild(group);
+                        group.appendChild(grid);
+                        hd.addEventListener('click', function() { toggleCat(cat, group); });
+                        if (_isCatCollapsed(cat)) {
+                            group.classList.add('cat-collapsed');
+                            grid.style.height = '0';
+                            grid.style.overflow = 'hidden';
+                        }
+                        content.appendChild(group);
                     });
                     alignCatHeaders();
                 }
@@ -444,6 +462,7 @@
         function alignCatHeaders() {
             requestAnimationFrame(function() {
                 document.querySelectorAll('.dash-group').forEach(function(group) {
+                    if (group.classList.contains('cat-collapsed')) return;
                     var hd = group.querySelector('.dash-cat-hd');
                     var tiles = group.querySelectorAll('.app-tile');
                     if (!hd || !tiles.length) return;
@@ -460,6 +479,37 @@
             });
         }
         window.addEventListener('resize', alignCatHeaders);
+
+        function _isCatCollapsed(cat) {
+            try { return localStorage.getItem('hls-cat-' + cat) === '1'; } catch(e) { return false; }
+        }
+        function _setCatCollapsed(cat, v) {
+            try { v ? localStorage.setItem('hls-cat-' + cat, '1') : localStorage.removeItem('hls-cat-' + cat); } catch(e) {}
+        }
+        function toggleCat(cat, group) {
+            var grid = group.querySelector('.dash-grid');
+            var collapsing = !group.classList.contains('cat-collapsed');
+            if (collapsing) {
+                var h = grid.scrollHeight;
+                grid.style.overflow = 'hidden';
+                grid.style.height = h + 'px';
+                requestAnimationFrame(function() {
+                    group.classList.add('cat-collapsed');
+                    grid.style.height = '0';
+                });
+            } else {
+                group.classList.remove('cat-collapsed');
+                var h = grid.scrollHeight;
+                grid.style.height = h + 'px';
+                grid.addEventListener('transitionend', function once() {
+                    grid.style.height = '';
+                    grid.style.overflow = '';
+                    grid.removeEventListener('transitionend', once);
+                    alignCatHeaders();
+                });
+            }
+            _setCatCollapsed(cat, collapsing);
+        }
 
         loadDashboard();
         fetch(API_BASE + '/api/version').then(function(r){return r.json();}).then(function(d){
