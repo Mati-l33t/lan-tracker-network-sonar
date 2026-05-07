@@ -140,6 +140,12 @@ It cannot create or delete VMs, modify configs, manage users, or access backup f
 
 ## Update
 
+HomeLab Sonar checks for updates automatically in the background (every 6 hours) and shows an amber dot on the Settings gear icon when a new version is available.
+
+To update from the web UI: open **Settings → System → Software Update** and click **Update Now**. The service will restart automatically when done.
+
+To update from the command line:
+
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Mati-l33t/lan-tracker-network-sonar/main/update.sh)
 ```
