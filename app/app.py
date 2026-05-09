@@ -36,7 +36,7 @@ import mysql.connector, subprocess, re, socket, struct
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 import auth
 import proxmox_routes
@@ -106,7 +106,11 @@ class PwChange(BaseModel):
     currentPassword:str; newPassword:str
 class DashboardApp(BaseModel):
     name:str; url:str; icon_type:str="initials"; icon_value:str=""
-    category:str=""; description:str=""; tags:List[int]=[]
+    category:str=""; description:str=""; tags:List[int]=[]; is_link:int=0
+class WidgetConfigPatch(BaseModel):
+    clock: Optional[bool] = None
+    network: Optional[bool] = None
+    proxmox: Optional[bool] = None
 class DashboardTag(BaseModel):
     name:str; color:str="#6366f1"
 class StatusItem(BaseModel):
@@ -176,6 +180,7 @@ def init():
     cur.execute("ALTER TABLE dashboard_apps ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT NULL")
     cur.execute("ALTER TABLE dashboard_apps ADD COLUMN IF NOT EXISTS description VARCHAR(500) DEFAULT NULL")
     cur.execute("ALTER TABLE dashboard_apps ADD COLUMN IF NOT EXISTS tags TEXT DEFAULT NULL")
+    cur.execute("ALTER TABLE dashboard_apps ADD COLUMN IF NOT EXISTS is_link TINYINT(1) DEFAULT 0")
     cur.execute("""CREATE TABLE IF NOT EXISTS dashboard_tags (
         id         INT AUTO_INCREMENT PRIMARY KEY,
         name       VARCHAR(50) NOT NULL,
@@ -624,10 +629,10 @@ async def add_dashboard_app(body: DashboardApp):
     cur.execute("SELECT COALESCE(MAX(sort_order),0)+1 FROM dashboard_apps")
     next_order = cur.fetchone()[0]
     cur.execute(
-        "INSERT INTO dashboard_apps(name,url,icon_type,icon_value,category,description,tags,sort_order) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
+        "INSERT INTO dashboard_apps(name,url,icon_type,icon_value,category,description,tags,sort_order,is_link) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
         (body.name, body.url, body.icon_type, body.icon_value or None,
          body.category or None, body.description or None,
-         json.dumps(body.tags) if body.tags else None, next_order))
+         json.dumps(body.tags) if body.tags else None, next_order, body.is_link))
     new_id = cur.lastrowid
     c.commit(); cur.close(); c.close()
     return {"id": new_id}
@@ -648,10 +653,10 @@ async def update_dashboard_app(app_id: int, body: DashboardApp):
     if not c: raise HTTPException(500, "DB fail")
     cur = c.cursor()
     cur.execute(
-        "UPDATE dashboard_apps SET name=%s,url=%s,icon_type=%s,icon_value=%s,category=%s,description=%s,tags=%s WHERE id=%s",
+        "UPDATE dashboard_apps SET name=%s,url=%s,icon_type=%s,icon_value=%s,category=%s,description=%s,tags=%s,is_link=%s WHERE id=%s",
         (body.name, body.url, body.icon_type, body.icon_value or None,
          body.category or None, body.description or None,
-         json.dumps(body.tags) if body.tags else None, app_id))
+         json.dumps(body.tags) if body.tags else None, body.is_link, app_id))
     c.commit(); cur.close(); c.close()
     return {"ok": True}
 
@@ -772,6 +777,64 @@ async def ack_device(d: IpOnly):
     cur.execute("UPDATE devices SET is_new=0 WHERE ip=%s", (d.ip,))
     c.commit(); cur.close(); c.close()
     return {"status": "ok"}
+
+@app.get("/api/widgets/config")
+async def get_widget_config():
+    c = db()
+    if not c: return {"clock": True, "network": True, "proxmox": True}
+    cur = c.cursor(dictionary=True)
+    cur.execute("SELECT `key`, value FROM admin_config WHERE `key` IN ('widget_clock','widget_network','widget_proxmox')")
+    rows = {r["key"]: r["value"] for r in cur.fetchall()}
+    cur.close(); c.close()
+    return {
+        "clock":   rows.get("widget_clock",   "1") == "1",
+        "network": rows.get("widget_network",  "1") == "1",
+        "proxmox": rows.get("widget_proxmox",  "1") == "1",
+    }
+
+@app.patch("/api/widgets/config")
+async def patch_widget_config(body: WidgetConfigPatch):
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    mapping = {"clock": "widget_clock", "network": "widget_network", "proxmox": "widget_proxmox"}
+    updates = body.model_dump(exclude_none=True)
+    for field, key in mapping.items():
+        if field in updates:
+            val = "1" if updates[field] else "0"
+            cur.execute(
+                "INSERT INTO admin_config(`key`, value) VALUES(%s, %s) ON DUPLICATE KEY UPDATE value=%s",
+                (key, val, val))
+    c.commit(); cur.close(); c.close()
+    return await get_widget_config()
+
+@app.get("/api/widgets/network")
+async def get_widget_network():
+    c = db()
+    if not c: return {"total": 0, "online": 0, "offline": 0, "new_devices": 0, "last_scan": None}
+    cur = c.cursor(dictionary=True)
+    cur.execute("""
+        SELECT COUNT(*) AS total,
+               SUM(status='active') AS online,
+               SUM(is_new=1) AS new_devices,
+               MAX(last_seen) AS last_scan
+        FROM devices
+    """)
+    row = cur.fetchone()
+    cur.close(); c.close()
+    total = int(row["total"] or 0)
+    online = int(row["online"] or 0)
+    return {
+        "total":       total,
+        "online":      online,
+        "offline":     total - online,
+        "new_devices": int(row["new_devices"] or 0),
+        "last_scan":   row["last_scan"].isoformat() if row["last_scan"] else None,
+    }
+
+@app.get("/api/widgets/proxmox")
+async def get_widget_proxmox():
+    return {"hosts": proxmox_routes.get_widget_summary()}
 
 async def _daily_scan_loop():
     """Run a network scan once per day to populate 7-day activity history."""

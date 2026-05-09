@@ -101,6 +101,12 @@
         .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:20px; transition:background 0.4s,border-color 0.4s; }
         .panel-label { font-size:0.62rem; font-weight:600; letter-spacing:0.28em; text-transform:uppercase; color:var(--text-muted); margin-bottom:18px; display:flex; align-items:center; gap:8px; }
         .panel-label svg { color:var(--accent); width:15px; height:15px; flex-shrink:0; }
+        .panel-label.collapsible { cursor:pointer; user-select:none; }
+        .panel-label.collapsible:hover { color:var(--text); }
+        .panel-chevron { margin-left:auto; display:inline-flex; align-items:center; color:var(--text-dim); transition:transform 0.25s ease, color 0.2s; }
+        .panel-label.collapsible:hover .panel-chevron { color:var(--accent); }
+        .panel.panel-collapsed .panel-chevron { transform:rotate(-90deg); }
+        .panel-body { overflow:hidden; transition:height 0.28s ease; }
 
         /* ── BUTTONS ─── */
         .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'Chakra Petch',sans-serif; font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.2s ease; white-space:nowrap; }
@@ -230,6 +236,21 @@
         .dash-tag-chip.selected { font-weight:700; }
         /* Inline table tag chips */
         .tbl-tag { display:inline-block; padding:1px 6px; border-radius:3px; font-size:0.56rem; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap; margin-right:3px; }
+
+        /* ── CATEGORY SORT ─── */
+        .cat-sort-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:7px; background:var(--bg2); border:1px solid var(--border); margin-bottom:6px; }
+        .cat-sort-row:last-child { margin-bottom:0; }
+        .cat-sort-name { flex:1; font-size:0.78rem; font-weight:600; letter-spacing:0.04em; }
+        .cat-sort-btns { display:flex; gap:3px; }
+        .cat-sort-btn { background:none; border:none; color:var(--text-dim); cursor:pointer; padding:4px 6px; border-radius:4px; transition:color 0.15s,background 0.15s; display:flex; align-items:center; line-height:1; }
+        .cat-sort-btn:hover { color:var(--accent); background:var(--surface2); }
+        .cat-sort-btn svg { width:12px; height:12px; display:block; }
+        .cat-sort-spacer { width:24px; display:inline-block; }
+        /* ── CATEGORY PICKER CHIPS ─── */
+        .cat-picker { display:flex; flex-wrap:wrap; gap:6px; padding:6px 0 2px; }
+        .cat-chip { display:inline-flex; align-items:center; padding:3px 10px; border-radius:4px; font-size:0.62rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; border:1px solid var(--border); background:transparent; color:var(--text-muted); font-family:'Chakra Petch',sans-serif; cursor:pointer; transition:all 0.15s; }
+        .cat-chip:hover { border-color:var(--accent); color:var(--accent); }
+        .cat-chip.selected { color:var(--accent); border-color:var(--accent); background:var(--accent-glow); font-weight:700; }
 
         /* ── DRAG & DROP ─── */
         .drag-handle { cursor:grab; color:var(--text-dim); padding:0 8px !important; user-select:none; transition:color 0.15s; width:30px; }
@@ -652,6 +673,43 @@
         <!-- ══ DASHBOARD SECTION ══ -->
         <div class="settings-sec" id="sec-dashboard">
 
+            <!-- Widgets Panel -->
+            <div class="panel s4">
+                <div class="panel-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    Widgets
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--border);">
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:3px;">Clock</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);">Live clock with timezone</div>
+                        </div>
+                        <button class="toggle-btn" id="widgetClockToggle" onclick="toggleWidget('clock',this)" title="Toggle clock widget">
+                            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        </button>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--border);">
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:3px;">Network Summary</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);">Device counts from last scan</div>
+                        </div>
+                        <button class="toggle-btn" id="widgetNetworkToggle" onclick="toggleWidget('network',this)" title="Toggle network widget">
+                            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        </button>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;">
+                        <div>
+                            <div style="font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:3px;">Proxmox Summary</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);">CPU, RAM and VM counts per node</div>
+                        </div>
+                        <button class="toggle-btn" id="widgetProxmoxToggle" onclick="toggleWidget('proxmox',this)" title="Toggle Proxmox widget">
+                            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Add Application Panel -->
             <div class="panel s4">
                 <div class="panel-label">
@@ -671,7 +729,7 @@
                         <label for="dashCategory">Category</label>
                         <input type="text" id="dashCategory" placeholder="e.g. Monitoring" autocomplete="off"
                                onfocus="catDropShow('dashCategory','dashCatDrop')"
-                               oninput="catDropFilter('dashCategory','dashCatDrop')"
+                               oninput="catDropFilter('dashCategory','dashCatDrop');renderCatPicker('dashCatPicker','dashCategory')"
                                onblur="setTimeout(function(){catDropHide('dashCatDrop')},150)">
                         <div class="cat-dropdown" id="dashCatDrop"></div>
                     </div>
@@ -697,6 +755,10 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
+                    <div class="fg" style="grid-column:1/-1">
+                        <label>Categories</label>
+                        <div class="cat-picker" id="dashCatPicker"></div>
                     </div>
                     <div class="fg" style="grid-column:1/-1">
                         <label>Tags</label>
@@ -732,7 +794,7 @@
                         <label for="linkCategory">Category</label>
                         <input type="text" id="linkCategory" placeholder="e.g. Tools" autocomplete="off"
                                onfocus="catDropShow('linkCategory','linkCatDrop')"
-                               oninput="catDropFilter('linkCategory','linkCatDrop')"
+                               oninput="catDropFilter('linkCategory','linkCatDrop');renderCatPicker('linkCatPicker','linkCategory')"
                                onblur="setTimeout(function(){catDropHide('linkCatDrop')},150)">
                         <div class="cat-dropdown" id="linkCatDrop"></div>
                     </div>
@@ -760,6 +822,10 @@
                         </div>
                     </div>
                     <div class="fg" style="grid-column:1/-1">
+                        <label>Categories</label>
+                        <div class="cat-picker" id="linkCatPicker"></div>
+                    </div>
+                    <div class="fg" style="grid-column:1/-1">
                         <label>Tags</label>
                         <div class="dash-tag-picker" id="linkTagPicker">
                             <span style="font-size:0.68rem;color:var(--text-muted)">No tags yet — create tags below first</span>
@@ -774,12 +840,44 @@
                 </div>
             </div>
 
+            <!-- Categories Panel -->
+            <div class="panel s5" id="panelCategories">
+                <div class="panel-label collapsible" onclick="toggleSettingsPanel('panelCategories','categoriesBody')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    Categories
+                    <span class="panel-chevron"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></span>
+                </div>
+                <div class="panel-body" id="categoriesBody">
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;line-height:1.55">Add categories and set the order they appear on your dashboard.</div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px">
+                        <input type="text" id="newCatName" placeholder="New category name" autocomplete="off"
+                            style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:'Courier Prime',monospace;font-size:0.875rem;transition:border-color 0.2s,box-shadow 0.2s"
+                            onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-glow)'"
+                            onblur="this.style.borderColor='';this.style.boxShadow=''"
+                            onkeydown="if(event.key==='Enter')catSortAdd()">
+                        <button class="btn btn-save" onclick="catSortAdd()" style="padding:9px 16px;font-size:0.68rem;white-space:nowrap">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add
+                        </button>
+                    </div>
+                    <div id="catSortList"></div>
+                    <div class="btn-row" style="margin-top:10px">
+                        <button class="btn" onclick="catSortReset()" style="font-size:0.68rem;padding:7px 14px">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.55"/></svg>
+                            Reset Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tags Panel -->
-            <div class="panel s6">
-                <div class="panel-label">
+            <div class="panel s6" id="panelTags">
+                <div class="panel-label collapsible" onclick="toggleSettingsPanel('panelTags','tagsBody')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                     Tags
+                    <span class="panel-chevron"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></span>
                 </div>
+                <div class="panel-body" id="tagsBody">
                 <div class="dash-tag-create">
                     <div class="fg" style="flex:1;min-width:120px">
                         <label for="newTagName">Tag Name</label>
@@ -809,14 +907,17 @@
                     </div>
                 </div>
                 <div id="tagsList" class="dash-tags-list"></div>
+                </div><!-- /.panel-body -->
             </div>
 
             <!-- Applications Table Panel -->
-            <div class="panel s6">
-                <div class="panel-label">
+            <div class="panel s6" id="panelApps">
+                <div class="panel-label collapsible" onclick="toggleSettingsPanel('panelApps','appsBody')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                     Applications
+                    <span class="panel-chevron"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></span>
                 </div>
+                <div class="panel-body" id="appsBody">
                 <div style="overflow-x:auto">
                     <table class="dash-tbl">
                         <thead><tr><th></th><th>Icon</th><th>Name</th><th>Category</th><th>Tags</th><th>URL</th><th>Actions</th></tr></thead>
@@ -825,6 +926,26 @@
                         </tbody>
                     </table>
                 </div>
+                </div><!-- /.panel-body -->
+            </div>
+
+            <!-- Quick Links Table Panel -->
+            <div class="panel s6" id="panelLinks">
+                <div class="panel-label collapsible" onclick="toggleSettingsPanel('panelLinks','linksBody')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                    Quick Links
+                    <span class="panel-chevron"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></span>
+                </div>
+                <div class="panel-body" id="linksBody">
+                <div style="overflow-x:auto">
+                    <table class="dash-tbl">
+                        <thead><tr><th></th><th>Name</th><th>Category</th><th>URL</th><th>Actions</th></tr></thead>
+                        <tbody id="dashLinksTbody">
+                            <tr><td colspan="5" class="dash-tbl-empty">No quick links added yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                </div><!-- /.panel-body -->
             </div>
         </div>
 
@@ -860,7 +981,7 @@
     </div>
 
         <footer class="s6">
-            <p>© 2026 <a href="https://github.com/Mati-l33t" target="_blank" rel="noopener">Mati-l33t</a> &nbsp;·&nbsp; Homelab Sonar &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion" style="font-variant-numeric:tabular-nums"></a></p>
+            <p>© 2026 <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar" target="_blank" rel="noopener">Homelab Sonar</a> &nbsp;·&nbsp; <a href="https://github.com/Mati-l33t/lan-tracker-network-sonar/releases" target="_blank" rel="noopener" id="appVersion"></a></p>
         </footer>
     </div>
 
@@ -871,6 +992,52 @@
             var saved = localStorage.getItem('lant-theme');
             if (saved) document.documentElement.setAttribute('data-theme', saved);
         })();
+
+        var _settingsPanels = ['panelCategories:categoriesBody', 'panelTags:tagsBody', 'panelApps:appsBody', 'panelLinks:linksBody'];
+        function _initSettingsPanels() {
+            _settingsPanels.forEach(function(pair) {
+                var parts = pair.split(':');
+                var panel = document.getElementById(parts[0]);
+                var body  = document.getElementById(parts[1]);
+                if (!panel || !body) return;
+                if (localStorage.getItem('hls-panel-' + parts[0]) !== '0') {
+                    panel.classList.add('panel-collapsed');
+                    body.style.height = '0';
+                    body.style.overflow = 'hidden';
+                    panel.querySelector('.panel-label').style.marginBottom = '0';
+                }
+            });
+        }
+        function toggleSettingsPanel(panelId, bodyId) {
+            var panel = document.getElementById(panelId);
+            var body  = document.getElementById(bodyId);
+            if (!panel || !body) return;
+            var label = panel.querySelector('.panel-label');
+            var collapsing = !panel.classList.contains('panel-collapsed');
+            if (collapsing) {
+                var h = body.scrollHeight;
+                body.style.overflow = 'hidden';
+                body.style.height = h + 'px';
+                requestAnimationFrame(function() {
+                    panel.classList.add('panel-collapsed');
+                    body.style.height = '0';
+                    if (label) label.style.marginBottom = '0';
+                });
+            } else {
+                panel.classList.remove('panel-collapsed');
+                if (label) label.style.marginBottom = '';
+                var h = body.scrollHeight;
+                body.style.height = h + 'px';
+                body.addEventListener('transitionend', function once() {
+                    body.style.height = '';
+                    body.style.overflow = '';
+                    body.removeEventListener('transitionend', once);
+                });
+            }
+            try {
+                collapsing ? localStorage.removeItem('hls-panel-' + panelId) : localStorage.setItem('hls-panel-' + panelId, '0');
+            } catch(e) {}
+        }
 
         function updateThemeUI() {
             var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
@@ -942,6 +1109,7 @@
         loadSubtitle();
 
         updateThemeUI();
+        _initSettingsPanels();
 
         /* ── SECTION SWITCHING ── */
         function switchSection(sec) {
@@ -952,7 +1120,7 @@
                 s.classList.toggle('active', s.id === 'sec-' + sec);
             });
             if (sec === 'proxmox')   pveLoadHosts();
-            if (sec === 'dashboard') { dashLoadTags(); dashLoadApps(); }
+            if (sec === 'dashboard') { dashLoadTags(); dashLoadApps(); dashLoadWidgetConfig(); }
             if (sec === 'system')    initLogViewerOnce();
             history.replaceState(null, '', '/settings#' + sec);
         }
@@ -1348,6 +1516,9 @@
         var _allTags         = [];
         var _dashAddTags     = [];
         var _dashEditTags    = [];
+        var _editingLinkId   = null;
+        var _linkEditIcon    = { type:'initials', value:'' };
+        var _linkEditTags    = [];
 
         function hexToRgba(hex, alpha) {
             if (!hex||hex.length<7) return 'transparent';
@@ -1424,6 +1595,8 @@
                 await fetch(API_BASE+'/api/dashboard/tags/'+id,{method:'DELETE'});
                 _dashAddTags=_dashAddTags.filter(function(t){return t!==id;});
                 _dashEditTags=_dashEditTags.filter(function(t){return t!==id;});
+                _linkAddTags=_linkAddTags.filter(function(t){return t!==id;});
+                _linkEditTags=_linkEditTags.filter(function(t){return t!==id;});
                 showStatus('Tag deleted');
                 await dashLoadTags();
                 dashLoadApps();
@@ -1562,6 +1735,7 @@
                 _dashPendingIcon={type:'initials',value:''}; _dashAddTags=[];
                 setDashIconPreview(null,'');
                 renderTagPicker('dashTagPicker',_dashAddTags);
+                renderCatPicker('dashCatPicker','dashCategory');
                 showStatus('Application added');
                 dashLoadApps();
             } catch(e) { showError('Error: '+e.message); }
@@ -1589,16 +1763,110 @@
             try {
                 var res=await fetch(API_BASE+'/api/dashboard/apps');
                 var apps=await res.json();
-                dashRenderTable(apps);
+                var tileApps=apps.filter(function(a){return !a.is_link;});
+                var links=apps.filter(function(a){return !!a.is_link;});
+                dashRenderTable(tileApps);
+                dashRenderLinksTable(links);
                 _extractCategories(apps);
             } catch(e) {}
         }
 
         var _categories = [];
+        function _getCatOrder() {
+            try { var s=JSON.parse(localStorage.getItem('hls-cat-order')); return Array.isArray(s)?s:null; } catch(e){return null;}
+        }
+        function _saveCatOrder(arr) {
+            try { localStorage.setItem('hls-cat-order', JSON.stringify(arr)); } catch(e) {}
+        }
         function _extractCategories(apps) {
             var seen={};
             apps.forEach(function(a){ if(a.category) seen[a.category]=1; });
-            _categories=Object.keys(seen).sort();
+            var all=Object.keys(seen);
+            var stored=_getCatOrder();
+            if (stored) {
+                var ordered=stored.filter(function(c){return seen[c];});
+                var added=false;
+                all.forEach(function(c){if(ordered.indexOf(c)===-1){ordered.push(c);added=true;}});
+                _categories=ordered;
+                if (added) _saveCatOrder(ordered);
+            } else {
+                _categories=all.sort();
+                if (_categories.length) _saveCatOrder(_categories);
+            }
+            renderCatSortPanel();
+        }
+        function renderCatPicker(pickerId, inputId) {
+            var picker=document.getElementById(pickerId); if (!picker) return;
+            picker.innerHTML='';
+            if (!_categories.length) return;
+            var inputEl=document.getElementById(inputId);
+            var current=inputEl?inputEl.value.trim():'';
+            _categories.forEach(function(cat){
+                var btn=document.createElement('button'); btn.type='button';
+                btn.className='cat-chip'+(cat===current?' selected':'');
+                btn.textContent=cat;
+                btn.onclick=function(){
+                    if (!inputEl) return;
+                    inputEl.value=(inputEl.value.trim()===cat)?'':cat;
+                    renderCatPicker(pickerId,inputId);
+                };
+                picker.appendChild(btn);
+            });
+        }
+        function renderCatSortPanel() {
+            var list=document.getElementById('catSortList');
+            if (!list) return;
+            renderCatPicker('dashCatPicker','dashCategory');
+            renderCatPicker('linkCatPicker','linkCategory');
+            if (!_categories.length) {
+                list.innerHTML='<div style="font-size:0.72rem;color:var(--text-dim);padding:8px 0">No categories yet — type a name above to add one.</div>';
+                return;
+            }
+            var upSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>';
+            var dnSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+            var delSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+            var html='';
+            _categories.forEach(function(cat,i){
+                html+='<div class="cat-sort-row">'+
+                    '<span class="cat-sort-name">'+esc(cat)+'</span>'+
+                    '<div class="cat-sort-btns">'+
+                    (i>0?'<button class="cat-sort-btn" onclick="catSortMove('+i+',-1)" title="Move up">'+upSvg+'</button>':'<span class="cat-sort-spacer"></span>')+
+                    (i<_categories.length-1?'<button class="cat-sort-btn" onclick="catSortMove('+i+',1)" title="Move down">'+dnSvg+'</button>':'<span class="cat-sort-spacer"></span>')+
+                    '<button class="cat-sort-btn" onclick="catSortRemove('+i+')" title="Remove" style="margin-left:4px;color:var(--danger)">'+delSvg+'</button>'+
+                    '</div>'+
+                    '</div>';
+            });
+            list.innerHTML=html;
+        }
+        function catSortAdd() {
+            var input=document.getElementById('newCatName');
+            var name=(input?input.value:'').trim();
+            if (!name) return;
+            if (_categories.indexOf(name)!==-1) { showError('Category "'+name+'" already exists'); return; }
+            _categories=_categories.concat([name]);
+            _saveCatOrder(_categories);
+            renderCatSortPanel();
+            if (input) input.value='';
+        }
+        function catSortRemove(idx) {
+            _categories=_categories.filter(function(_,i){return i!==idx;});
+            _saveCatOrder(_categories);
+            renderCatSortPanel();
+        }
+        function catSortMove(idx, dir) {
+            var ni=idx+dir;
+            if (ni<0||ni>=_categories.length) return;
+            var arr=_categories.slice();
+            var tmp=arr[idx]; arr[idx]=arr[ni]; arr[ni]=tmp;
+            _categories=arr;
+            _saveCatOrder(_categories);
+            renderCatSortPanel();
+        }
+        function catSortReset() {
+            _categories=_categories.slice().sort();
+            try { localStorage.removeItem('hls-cat-order'); } catch(e) {}
+            renderCatSortPanel();
+            showStatus('Category order reset');
         }
         function catDropShow(inputId, dropId) {
             catDropFilter(inputId, dropId);
@@ -1653,14 +1921,17 @@
             e.preventDefault();
             document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(function(r){ r.classList.remove('drag-over-top','drag-over-bottom'); });
             if (targetId === _dragSrcId) return;
-            var srcRow = document.querySelector('[data-dash-id="'+_dragSrcId+'"]');
-            var targetRow = document.querySelector('[data-dash-id="'+targetId+'"]');
+            var srcRow = document.querySelector('tr[data-dash-id="'+_dragSrcId+'"]');
+            var targetRow = document.querySelector('tr[data-dash-id="'+targetId+'"]');
             if (!srcRow || !targetRow) return;
+            var srcTbody = srcRow.closest('tbody');
+            var tgtTbody = targetRow.closest('tbody');
+            if (!srcTbody || srcTbody !== tgtTbody) return;
             var isTop = srcRow._dropTop;
-            var tbody = document.getElementById('dashAppsTbody');
-            tbody.insertBefore(srcRow, isTop ? targetRow : targetRow.nextSibling);
+            srcTbody.insertBefore(srcRow, isTop ? targetRow : targetRow.nextSibling);
             srcRow.classList.remove('dragging');
-            dashSaveOrder();
+            if (srcTbody.id === 'dashLinksTbody') linkSaveOrder();
+            else dashSaveOrder();
         }
         function dashDragEnd() {
             document.querySelectorAll('.drag-over-top,.drag-over-bottom,.dragging').forEach(function(r){
@@ -1669,6 +1940,13 @@
         }
         async function dashSaveOrder() {
             var rows = document.querySelectorAll('#dashAppsTbody tr[data-dash-id]');
+            var order = Array.from(rows).map(function(r){ return parseInt(r.dataset.dashId); });
+            try {
+                await fetch(API_BASE+'/api/dashboard/reorder',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({order:order})});
+            } catch(e) { showError('Failed to save order'); }
+        }
+        async function linkSaveOrder() {
+            var rows = document.querySelectorAll('#dashLinksTbody tr[data-dash-id]');
             var order = Array.from(rows).map(function(r){ return parseInt(r.dataset.dashId); });
             try {
                 await fetch(API_BASE+'/api/dashboard/reorder',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({order:order})});
@@ -1717,6 +1995,60 @@
                 });
             });
             tbody.innerHTML=html;
+        }
+
+        function dashRenderLinksTable(links) {
+            var tbody=document.getElementById('dashLinksTbody');
+            if (!links||!links.length) {
+                tbody.innerHTML='<tr><td colspan="5" class="dash-tbl-empty">No quick links added yet</td></tr>'; return;
+            }
+            var handle='<svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="3" x2="10" y2="3"/><line x1="2" y1="7" x2="10" y2="7"/><line x1="2" y1="11" x2="10" y2="11"/></svg>';
+            var html='';
+            links.forEach(function(lnk){
+                html+='<tr draggable="true" data-dash-id="'+lnk.id+'"'+
+                    ' ondragstart="dashDragStart(event,'+lnk.id+')"'+
+                    ' ondragover="dashDragOver(event,'+lnk.id+');this._dropTop=event.clientY<this.getBoundingClientRect().top+this.getBoundingClientRect().height/2"'+
+                    ' ondragleave="dashDragLeave(event)"'+
+                    ' ondrop="dashDrop(event,'+lnk.id+')"'+
+                    ' ondragend="dashDragEnd()"'+
+                    '>'+
+                    '<td class="drag-handle">'+handle+'</td>'+
+                    '<td style="font-weight:600">'+esc(lnk.name)+'</td>'+
+                    '<td style="font-size:0.72rem;color:var(--text-muted)">'+esc(lnk.category||'—')+'</td>'+
+                    '<td class="dash-tbl-url"><a href="'+esc(lnk.url)+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-family:\'Courier Prime\',monospace">'+esc(lnk.url)+'</a></td>'+
+                    '<td style="white-space:nowrap;display:flex;gap:6px;padding:10px 12px">'+
+                        '<button class="btn" style="padding:6px 12px;font-size:0.65rem" onclick="editLinkRow('+lnk.id+')">Edit</button>'+
+                        '<button class="btn btn-danger" style="padding:6px 12px;font-size:0.65rem" onclick="dashDeleteApp('+lnk.id+',\''+esc(lnk.name)+'\')">Delete</button>'+
+                    '</td>'+
+                '</tr>';
+            });
+            tbody.innerHTML=html;
+        }
+
+        async function dashLoadWidgetConfig() {
+            try {
+                var cfg = await fetch(API_BASE + '/api/widgets/config').then(function(r){return r.json();});
+                var ids = {clock:'widgetClockToggle', network:'widgetNetworkToggle', proxmox:'widgetProxmoxToggle'};
+                var keys = {clock: cfg.clock, network: cfg.network, proxmox: cfg.proxmox};
+                Object.keys(ids).forEach(function(k) {
+                    var btn = document.getElementById(ids[k]);
+                    if (btn) btn.classList.toggle('on', !!keys[k]);
+                });
+            } catch(e) {}
+        }
+
+        async function toggleWidget(key, btn) {
+            btn.classList.toggle('on');
+            var isOn = btn.classList.contains('on');
+            var body = {};
+            body[key] = isOn;
+            try {
+                await fetch(API_BASE + '/api/widgets/config', {
+                    method:'PATCH', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify(body)
+                });
+                showStatus('Widget settings saved');
+            } catch(e) { btn.classList.toggle('on'); showError('Failed to save widget settings'); }
         }
 
         async function dashDeleteApp(id, name) {
@@ -1851,6 +2183,115 @@
 
         function dashCancelEdit() {
             _editingDashId=null;
+            dashLoadApps();
+        }
+
+        /* ── QUICK LINK EDIT ── */
+        async function editLinkRow(id) {
+            if (_editingLinkId) { _editingLinkId=null; }
+            if (_editingDashId) dashCancelEdit();
+            _editingLinkId=id;
+            var row=document.querySelector('#dashLinksTbody [data-dash-id="'+id+'"]');
+            if (!row) return;
+            var res=await fetch(API_BASE+'/api/dashboard/apps');
+            var apps=await res.json();
+            var lnk=apps.find(function(a){return a.id===id;});
+            if (!lnk) return;
+            _linkEditIcon={type:lnk.icon_type,value:lnk.icon_value||''};
+            _linkEditTags=(lnk.tags||[]).map(function(t){return t.id;});
+            var iconHtml=(_linkEditIcon.type!=='initials'&&_linkEditIcon.value)?
+                '<img src="'+esc(_linkEditIcon.value)+'" width="22" height="22" style="object-fit:contain;border-radius:3px">':
+                '<div class="dash-tbl-initials" style="background:'+_colorForName(lnk.name)+';width:22px;height:22px;font-size:0.72rem;">'+esc(_initials(lnk.name))+'</div>';
+            row.innerHTML=
+                '<td colspan="4" style="padding:14px">'+
+                '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">'+
+                    '<div class="fg"><label style="font-size:0.58rem;color:var(--text-muted);letter-spacing:0.18em;text-transform:uppercase">Name</label>'+
+                        '<input class="edit-inline-input" id="editLinkName" value="'+esc(lnk.name)+'" autocomplete="off"></div>'+
+                    '<div class="fg"><label style="font-size:0.58rem;color:var(--text-muted);letter-spacing:0.18em;text-transform:uppercase">URL</label>'+
+                        '<input class="edit-inline-input" id="editLinkUrl" value="'+esc(lnk.url)+'"></div>'+
+                    '<div class="fg cat-wrap"><label style="font-size:0.58rem;color:var(--text-muted);letter-spacing:0.18em;text-transform:uppercase">Category</label>'+
+                        '<input class="edit-inline-input" id="editLinkCategory" value="'+esc(lnk.category||'')+'" autocomplete="off"'+
+                        ' onfocus="catDropShow(\'editLinkCategory\',\'editLinkCatDrop\')" oninput="catDropFilter(\'editLinkCategory\',\'editLinkCatDrop\')" onblur="setTimeout(function(){catDropHide(\'editLinkCatDrop\')},150)">'+
+                        '<div class="cat-dropdown" id="editLinkCatDrop"></div></div>'+
+                '</div>'+
+                '<div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;align-items:end">'+
+                    '<div class="fg"><label style="font-size:0.58rem;color:var(--text-muted);letter-spacing:0.18em;text-transform:uppercase">Description</label>'+
+                        '<input class="edit-inline-input" id="editLinkDesc" value="'+esc(lnk.description||'')+'"></div>'+
+                    '<div style="display:flex;gap:6px;align-items:center">'+
+                        '<div id="linkEditIconPreview" style="width:36px;height:36px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+iconHtml+'</div>'+
+                        '<label class="btn" style="cursor:pointer;padding:6px 10px;font-size:0.63rem;" title="Upload icon">'+
+                            '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>'+
+                            '<input type="file" accept=".png,.jpg,.jpeg,.svg,.webp" style="display:none" onchange="uploadEditLinkIcon(this,'+id+')">'+
+                        '</label>'+
+                        '<button class="btn" onclick="clearEditLinkIcon('+id+')" style="padding:6px 10px;font-size:0.63rem;" title="Clear icon">'+
+                            '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'+
+                        '</button>'+
+                        '<button class="btn btn-save" onclick="saveLinkEdit('+id+')" style="padding:6px 12px;font-size:0.65rem">Save</button>'+
+                        '<button class="btn" onclick="cancelLinkEdit()" style="padding:6px 12px;font-size:0.65rem">Cancel</button>'+
+                    '</div>'+
+                '</div>'+
+                '<div class="fg"><label style="font-size:0.58rem;color:var(--text-muted);letter-spacing:0.18em;text-transform:uppercase">Tags</label>'+
+                    '<div class="dash-tag-picker" id="linkEditTagPicker"></div></div>'+
+                '</td>';
+            row.classList.add('edit-inline-row');
+            renderTagPicker('linkEditTagPicker',_linkEditTags);
+            document.getElementById('editLinkName').focus();
+        }
+
+        function _refreshLinkEditIconPreview(id) {
+            var preview=document.getElementById('linkEditIconPreview');
+            if (!preview) return;
+            var name=(document.getElementById('editLinkName')||{}).value||'Link';
+            preview.innerHTML='';
+            if (_linkEditIcon.type!=='initials'&&_linkEditIcon.value) {
+                var img=document.createElement('img'); img.src=_linkEditIcon.value; img.width=22; img.height=22; img.style.cssText='object-fit:contain;border-radius:3px';
+                img.onerror=function(){ _linkEditIcon={type:'initials',value:''}; _refreshLinkEditIconPreview(id); };
+                preview.appendChild(img);
+            } else {
+                var d=document.createElement('div'); d.className='dash-tbl-initials';
+                d.style.cssText='background:'+_colorForName(name)+';width:22px;height:22px;font-size:0.72rem';
+                d.textContent=_initials(name); preview.appendChild(d);
+            }
+        }
+
+        async function uploadEditLinkIcon(input,id) {
+            var file=input.files[0]; if (!file) return;
+            var fd=new FormData(); fd.append('file',file);
+            try {
+                var res=await fetch(API_BASE+'/api/dashboard/upload-icon',{method:'POST',body:fd});
+                var data=await res.json();
+                if (!res.ok) throw new Error(data.detail||'Upload failed');
+                _linkEditIcon={type:'custom',value:data.url};
+                _refreshLinkEditIconPreview(id);
+            } catch(e) { showError('Upload failed: '+e.message); }
+        }
+
+        function clearEditLinkIcon(id) {
+            _linkEditIcon={type:'initials',value:''};
+            _refreshLinkEditIconPreview(id);
+        }
+
+        async function saveLinkEdit(id) {
+            var name=(document.getElementById('editLinkName').value||'').trim();
+            var url =(document.getElementById('editLinkUrl').value||'').trim();
+            var cat =(document.getElementById('editLinkCategory').value||'').trim();
+            var desc=(document.getElementById('editLinkDesc').value||'').trim();
+            if (!url) { showError('URL required'); return; }
+            if (!name) { try { name=new URL(url).hostname.replace(/^www\./,''); } catch(e){} name=name||url; }
+            try {
+                var res=await fetch(API_BASE+'/api/dashboard/apps/'+id,{
+                    method:'PUT',headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({name:name,url:url,icon_type:_linkEditIcon.type,icon_value:_linkEditIcon.value||'',category:cat,description:desc,tags:_linkEditTags.slice(),is_link:1})
+                });
+                if (!res.ok) throw new Error('Failed');
+                _editingLinkId=null;
+                showStatus('Link updated');
+                dashLoadApps();
+            } catch(e) { showError('Save failed: '+e.message); }
+        }
+
+        function cancelLinkEdit() {
+            _editingLinkId=null;
             dashLoadApps();
         }
 
@@ -1989,7 +2430,7 @@
             try {
                 var res = await fetch(API_BASE + '/api/dashboard/apps', {
                     method:'POST', headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({name:name, url:url, icon_type:_linkPendingIcon.type, icon_value:_linkPendingIcon.value||'', category:cat, description:desc, tags:_linkAddTags.slice()})
+                    body:JSON.stringify({name:name, url:url, icon_type:_linkPendingIcon.type, icon_value:_linkPendingIcon.value||'', category:cat, description:desc, tags:_linkAddTags.slice(), is_link:1})
                 });
                 if (!res.ok) throw new Error('Failed');
                 document.getElementById('linkUrl').value         = '';
@@ -1999,6 +2440,7 @@
                 _linkPendingIcon = {type:'initials', value:''}; _linkAddTags = [];
                 setLinkIconPreview(null, '');
                 renderTagPicker('linkTagPicker', _linkAddTags);
+                renderCatPicker('linkCatPicker','linkCategory');
                 showStatus('Link added');
                 dashLoadApps();
             } catch(e) { showError('Error: ' + e.message); }

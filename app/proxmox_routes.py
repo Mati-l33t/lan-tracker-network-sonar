@@ -217,3 +217,46 @@ async def host_vm_action(host_id: int, body: VMAction):
 async def force_refresh():
     await pvc.poll_all_hosts()
     return {"message": "Refreshed"}
+
+
+def get_widget_summary():
+    """Return a slim per-node summary from the in-memory cache for the dashboard widget."""
+    if not _get_db:
+        return []
+    conn = _get_db()
+    if not conn:
+        return []
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, label FROM proxmox_hosts WHERE enabled=1 ORDER BY id")
+    hosts = cur.fetchall()
+    cur.close(); conn.close()
+
+    cache = pvc.get_cache()
+    result = []
+    for host in hosts:
+        hid = host["id"]
+        data = cache.get(hid)
+        if not data:
+            continue
+        nodes_out = []
+        all_guests = data.get("vms", []) + data.get("containers", [])
+        for node in data.get("nodes", []):
+            node_name = node.get("node", "")
+            node_guests = [g for g in all_guests if g.get("node") == node_name]
+            vms_running = sum(1 for g in node_guests if g.get("status") == "running")
+            vms_stopped = sum(1 for g in node_guests if g.get("status") != "running")
+            mem_used  = node.get("mem",    0)
+            mem_total = node.get("maxmem", 0)
+            cpu_pct   = round(node.get("cpu", 0) * 100, 1)
+            nodes_out.append({
+                "node":        node_name,
+                "cpu_usage":   cpu_pct,
+                "mem_used":    mem_used,
+                "mem_total":   mem_total,
+                "uptime":      node.get("uptime", 0),
+                "vms_running": vms_running,
+                "vms_stopped": vms_stopped,
+            })
+        if nodes_out:
+            result.append({"name": host["label"], "nodes": nodes_out})
+    return result
