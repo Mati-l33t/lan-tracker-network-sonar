@@ -11,7 +11,7 @@
     <style>
         :root, [data-theme="dark"] {
             --bg: #0d0d0f; --bg2: #111115; --surface: #18181d; --surface2: #1f1f26;
-            --border: #2c2c38; --text: #e0e0e8; --text-muted: #666676; --text-dim: #38383f;
+            --border: #2c2c38; --text: #e0e0e8; --text-muted: #8888a8; --text-dim: #55555f;
             --accent: #22d3ee; --accent-glow: rgba(34,211,238,0.14); --accent-strong: rgba(34,211,238,0.3);
             --accent2: #f59e0b; --accent2-glow: rgba(245,158,11,0.22);
             --active: #34d399; --active-bg: rgba(52,211,153,0.09);
@@ -1767,22 +1767,26 @@
                 var links=apps.filter(function(a){return !!a.is_link;});
                 dashRenderTable(tileApps);
                 dashRenderLinksTable(links);
-                _extractCategories(apps);
+                await _extractCategories(apps);
             } catch(e) {}
         }
 
         var _categories = [];
-        function _getCatOrder() {
-            try { var s=JSON.parse(localStorage.getItem('hls-cat-order')); return Array.isArray(s)?s:null; } catch(e){return null;}
+        async function _getCatOrder() {
+            try {
+                var r=await fetch(API_BASE+'/api/dashboard/category-order');
+                var d=await r.json();
+                return Array.isArray(d.order)&&d.order.length?d.order:null;
+            } catch(e){return null;}
         }
         function _saveCatOrder(arr) {
-            try { localStorage.setItem('hls-cat-order', JSON.stringify(arr)); } catch(e) {}
+            fetch(API_BASE+'/api/dashboard/category-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order:arr})}).catch(function(){});
         }
-        function _extractCategories(apps) {
+        async function _extractCategories(apps) {
             var seen={};
             apps.forEach(function(a){ if(a.category) seen[a.category]=1; });
             var all=Object.keys(seen);
-            var stored=_getCatOrder();
+            var stored=await _getCatOrder();
             if (stored) {
                 var ordered=stored.filter(function(c){return seen[c];});
                 var added=false;
@@ -1864,7 +1868,7 @@
         }
         function catSortReset() {
             _categories=_categories.slice().sort();
-            try { localStorage.removeItem('hls-cat-order'); } catch(e) {}
+            _saveCatOrder(_categories);
             renderCatSortPanel();
             showStatus('Category order reset');
         }

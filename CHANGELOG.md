@@ -11,6 +11,24 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.6.0] — 2026-05-09
+
+### Added
+- **Dashboard widgets** — optional widget zone above the app grid with three live cards: Clock (ticks every second, shows date and timezone), Network Summary (total/online/offline/new device counts with a live progress bar, polls every 60s), and Proxmox Summary (per-node CPU and RAM bars with VM counts, polls every 30s); each widget has its own accent colour and subtle animated background
+- **Widget toggles** — Settings → Dashboard → Widgets panel to enable or disable each widget independently; state persists in the database
+- **Categories panel** — Settings → Dashboard → Categories panel to add, remove, and reorder categories with ▲/▼ buttons; category chips appear in the Add Application and Add Link forms for quick selection
+
+### Changed
+- **Category order syncs across devices** — category display order is now stored in the database instead of `localStorage`; reordering on one device is reflected everywhere immediately
+- **Quick links render with app categories** — quick links are now rendered inside the main dashboard content area so link category groups sort together with app tile groups in the correct user-defined order
+- **Footer updated** — footer on all pages links to the HomeLab Sonar GitHub repository and release history
+
+### Fixed
+- **Dark mode readability** — muted text (`--text-muted`) lightened from `#666676` to `#8888a8` across all pages; affects table headers, labels, secondary text, and icon buttons; placeholder text (`--text-dim`) also lightened from `#38383f` to `#55555f`
+- **Quick links drag-and-drop reorder** — drag-and-drop in the Settings Quick Links table now correctly saves the new order
+
+---
+
 ## [1.5.0] — 2026-05-08
 
 ### Added

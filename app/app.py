@@ -119,6 +119,8 @@ class StatusBody(BaseModel):
     items:List[StatusItem]
 class DashboardReorder(BaseModel):
     order:List[int]
+class CategoryOrder(BaseModel):
+    order:List[str]
 class AuthSettings(BaseModel):
     login_disabled:bool
 
@@ -636,6 +638,33 @@ async def add_dashboard_app(body: DashboardApp):
     new_id = cur.lastrowid
     c.commit(); cur.close(); c.close()
     return {"id": new_id}
+
+@app.get("/api/dashboard/category-order")
+async def get_category_order():
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute("SELECT value FROM admin_config WHERE `key`='cat_order'")
+    row = cur.fetchone()
+    cur.close(); c.close()
+    if row:
+        import json as _json
+        try: return {"order": _json.loads(row[0])}
+        except Exception: pass
+    return {"order": []}
+
+@app.post("/api/dashboard/category-order")
+async def set_category_order(body: CategoryOrder):
+    import json as _json
+    c = db()
+    if not c: raise HTTPException(500, "DB fail")
+    cur = c.cursor()
+    cur.execute(
+        "INSERT INTO admin_config(`key`, value) VALUES('cat_order', %s) ON DUPLICATE KEY UPDATE value=%s",
+        (_json.dumps(body.order), _json.dumps(body.order))
+    )
+    c.commit(); cur.close(); c.close()
+    return {"ok": True}
 
 @app.patch("/api/dashboard/reorder")
 async def reorder_dashboard_apps(body: DashboardReorder):
