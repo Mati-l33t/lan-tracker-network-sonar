@@ -11,6 +11,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.6.1] — 2026-05-09
+
+### Fixed
+- **Quick links tags removed** — tags field in add/edit link forms had no effect on the dashboard and has been removed
+- **Link pill tooltip** — hovering a quick link now shows its description; falls back to the URL if no description is set
+
+---
+
 ## [1.6.0] — 2026-05-09
 
 ### Added
