@@ -665,7 +665,7 @@
             a.href = lnk.url || '#';
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
-            a.title = lnk.url || '';
+            a.title = lnk.description || lnk.url || '';
             if (lnk.icon_type === 'custom' || lnk.icon_type === 'favicon') {
                 var img = document.createElement('img');
                 img.className = 'link-favicon'; img.src = lnk.icon_value; img.alt = '';

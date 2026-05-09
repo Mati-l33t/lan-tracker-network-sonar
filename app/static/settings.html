@@ -825,12 +825,6 @@
                         <label>Categories</label>
                         <div class="cat-picker" id="linkCatPicker"></div>
                     </div>
-                    <div class="fg" style="grid-column:1/-1">
-                        <label>Tags</label>
-                        <div class="dash-tag-picker" id="linkTagPicker">
-                            <span style="font-size:0.68rem;color:var(--text-muted)">No tags yet — create tags below first</span>
-                        </div>
-                    </div>
                 </div>
                 <div class="btn-row">
                     <button class="btn btn-save" onclick="addDashLink()">
@@ -1533,7 +1527,6 @@
                 _allTags=await res.json();
                 renderTagsPanel();
                 renderTagPicker('dashTagPicker',_dashAddTags);
-                renderTagPicker('linkTagPicker',_linkAddTags);
             } catch(e) {}
         }
 
@@ -2234,11 +2227,8 @@
                         '<button class="btn" onclick="cancelLinkEdit()" style="padding:6px 12px;font-size:0.65rem">Cancel</button>'+
                     '</div>'+
                 '</div>'+
-                '<div class="fg"><label style="font-size:0.58rem;color:var(--text-muted);letter-spacing:0.18em;text-transform:uppercase">Tags</label>'+
-                    '<div class="dash-tag-picker" id="linkEditTagPicker"></div></div>'+
                 '</td>';
             row.classList.add('edit-inline-row');
-            renderTagPicker('linkEditTagPicker',_linkEditTags);
             document.getElementById('editLinkName').focus();
         }
 
